@@ -1,0 +1,53 @@
+# =====================================================================
+# CẤU HÌNH HỆ THỐNG XAU/USD PATTERN-MATCHING SIGNAL BOT (M5)
+# =====================================================================
+
+system:
+  symbol: "XAUUSD"               # Mã giao dịch (XAUUSD, GOLD, XAUUSD.m, ...)
+  timeframe: "M5"                # Khung thời gian M5 (5 phút)
+  timezone: "UTC"                # Múi giờ chuẩn hóa
+  log_level: "INFO"              # DEBUG, INFO, WARNING, ERROR
+
+# Module 1: Bộ lọc trạng thái khối lượng (Volume Regime Filter)
+volume_filter:
+  window_size: 100               # Cửa sổ trượt 100 nến M5
+  lower_percentile: 20.0         # Ngưỡng phân vị dưới P20 (bỏ qua thanh khoản mỏng)
+  upper_percentile: 85.0         # Ngưỡng phân vị trên P85 (bỏ qua bão tin tức)
+
+# Module 2: Trích xuất đặc trưng (Feature Engineering)
+feature_extractor:
+  window_size: 15                # Cửa sổ nến setup (t-14 đến t)
+  rsi_period: 7                  # Chu kỳ RSI ngắn hạn
+  vol_zscore_period: 20          # Chu kỳ tính Z-Score Volume
+  atr_period: 14                 # Chu kỳ ATR đo biến động
+  epsilon: 1e-6                  # Hệ số chống chia cho 0
+
+# Module 3 & 4: Động cơ so khớp vector (Similarity Engine)
+similarity_engine:
+  min_similarity: 0.85           # Ngưỡng Cosine Similarity tối thiểu
+  min_neighbors: 10              # Số lượng mẫu khớp tối thiểu
+  consensus_ratio: 0.80          # Tỷ lệ đồng thuận hướng đi (80%)
+  backend: "faiss"               # "faiss" hoặc "sklearn"
+
+# Module 4 & 5: Quản trị rủi ro & Định dạng lệnh (Risk Management)
+risk_manager:
+  swing_window: 15               # Cửa sổ tìm đỉnh/đáy Swing Low/High
+  buffer_usd: 0.5                # Vùng đệm Stop Loss (0.5 USD)
+  min_rr_ratio: 1.5              # Tỷ lệ R:R tối thiểu
+  risk_percent: 1.0              # Tỷ lệ rủi ro trên mỗi lệnh (% tài khoản)
+  min_sl_usd: 1.0                # Khoảng cách SL tối thiểu (tránh dính spread)
+  max_sl_usd: 6.0                # Khoảng cách SL tối đa (tránh rủi ro quá lớn)
+
+# Module 5: Thực thi và Cảnh báo (Execution & Alerts)
+execution:
+  mode: "dry-run"                # "dry-run" (paper trading) hoặc "live"
+  auto_trade: false              # Tự động gửi lệnh vào MT5 (false = chỉ báo alert)
+  magic_number: 108899           # Magic number phân biệt lệnh của bot
+  slippage_points: 20            # Trượt giá tối đa cho phép (points)
+  poll_interval_sec: 1.0         # Tần suất kiểm tra nến mới (giây)
+
+# Đường dẫn lưu trữ tập tin
+paths:
+  raw_data: "data/raw/xauusd_m5.parquet"
+  pattern_db: "data/patterns/winning_patterns.parquet"
+  logs_dir: "logs"
