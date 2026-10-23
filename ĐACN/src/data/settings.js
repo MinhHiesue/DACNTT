@@ -2,7 +2,7 @@ export const SETTINGS_GROUPS = {
   Chung: {
     heading: 'Tuỳ chọn giao diện',
     options: [
-      { key: 'compact', title: 'Bố cục gọn', description: 'Giảm khoảng cách giữa các bảng dữ liệu' },
+      { key: 'compact', title: 'Bố cục gọn', description: 'Giảm khoảng cách trong toàn bộ giao diện' },
       { key: 'sound', title: 'Âm báo trong giao diện', description: 'Chỉ áp dụng khi có thông báo mô phỏng' },
     ],
   },

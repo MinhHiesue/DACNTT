@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Bell, Check, Command, Menu, Search, Settings2, ChevronDown, Zap } from 'lucide-react'
+import { Bell, Check, Command, LogOut, Menu, Search, Settings2, ChevronDown, Zap } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 const PAGE_TITLES = {
@@ -13,10 +13,11 @@ const PAGE_TITLES = {
   '/help': 'Trung tâm trợ giúp',
 }
 
-export function Topbar({ pathname, query, onQueryChange, onMenuOpen }) {
+export function Topbar({ pathname, query, onQueryChange, onMenuOpen, user, onLogout }) {
   const [noticeOpen, setNoticeOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const navigate = useNavigate()
+  const initials = user.name.split(/\s+/).map((part) => part[0]).slice(-2).join('').toUpperCase()
 
   return (
     <header className="topbar">
@@ -32,8 +33,8 @@ export function Topbar({ pathname, query, onQueryChange, onMenuOpen }) {
           {noticeOpen && <div className="popover notification-pop"><div className="popover-title">Thông báo <span>2 mới</span></div><div className="notice-item"><span className="notice-icon gold-notice"><Zap size={14} /></span><div><strong>Tín hiệu vàng mới</strong><p>XAU/USD · MUA · Độ tin cậy 87%</p><small>2 phút trước</small></div></div><div className="notice-item"><span className="notice-icon blue-notice"><Check size={14} /></span><div><strong>Bot Telegram đã kết nối</strong><p>Thông báo sẽ được gửi tức thì</p><small>18 phút trước</small></div></div></div>}
         </div>
         <div className="popover-wrap">
-          <button className="profile-button" onClick={() => setProfileOpen(!profileOpen)}><span className="profile-avatar">ML</span><span className="profile-name">Minh Le</span><ChevronDown size={14} /></button>
-          {profileOpen && <div className="popover profile-pop"><div className="profile-pop-name">Minh Le</div><div className="profile-pop-email">Tài khoản cá nhân</div><button onClick={() => { setProfileOpen(false); navigate('/settings') }}><Settings2 size={14} /> Tùy chọn tài khoản</button></div>}
+          <button className="profile-button" onClick={() => setProfileOpen(!profileOpen)}><span className="profile-avatar">{initials}</span><span className="profile-name">{user.name}</span><ChevronDown size={14} /></button>
+          {profileOpen && <div className="popover profile-pop"><div className="profile-pop-name">{user.name}</div><div className="profile-pop-email">{user.email}</div><button onClick={() => { setProfileOpen(false); navigate('/settings') }}><Settings2 size={14} /> Tùy chọn tài khoản</button><button className="profile-logout" onClick={() => { setProfileOpen(false); onLogout() }}><LogOut size={14} /> Đăng xuất</button></div>}
         </div>
       </div>
     </header>

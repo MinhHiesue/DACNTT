@@ -24,12 +24,16 @@ npm run dev
 
 Mở URL Vite hiển thị trong terminal (thường là `http://localhost:5173/`). Tạo bản production bằng `npm run build` và xem thử bằng `npm run preview`.
 
+Để dùng đăng nhập/đăng ký, cần khởi động MongoDB và backend trong terminal riêng: vào thư mục `../Backend`, cài dependencies bằng `npm install`, cấu hình `.env` theo [hướng dẫn backend](../Backend/README.md), rồi chạy `npm run dev`.
+
 ## Phạm vi hiện tại
 
 - Phân tích thị trường hỗ trợ BTC/USDT, ETH/USDT, BNB/USDT với nến OHLC, MA(20), RSI(14), MACD(12, 26, 9) và sáu khung thời gian.
 - AI Signals có thống kê BUY/SELL/HOLD, lọc cặp/loại/thời gian và chi tiết phân tích, RSI, MACD, xu hướng.
 - Lịch sử, hiệu suất mô hình, cấu hình Telegram, tuỳ chọn giao diện và trợ giúp có tương tác mô phỏng tại chỗ.
-- Giá, nến, chỉ báo, nhận định, tín hiệu và trạng thái đều là dữ liệu mô phỏng trong frontend, không kết nối backend hay API.
+- Tuỳ chọn “Bố cục gọn” trong Cài đặt giảm khoảng cách giao diện trên các trang và được lưu trên trình duyệt.
+- Đăng nhập/đăng ký kết nối backend Node.js/Express/MongoDB; phiên đăng nhập dùng JWT. Backend nằm trong thư mục `../Backend`; xem hướng dẫn tại [Backend/README.md](../Backend/README.md).
+- Giá, nến, chỉ báo, nhận định và dữ liệu tín hiệu hiển thị trong dashboard vẫn là dữ liệu mô phỏng; hiện chưa kết nối AI, Telegram hay API sàn giao dịch.
 - Không có chức năng đặt lệnh mua bán.
-- Không cần API key, dịch vụ đăng ký, hoặc thư viện trả phí.
+- Không cần API key, dịch vụ bên thứ ba hoặc thư viện trả phí.
 - Giao diện demo, không phải lời khuyên đầu tư.
