@@ -10,8 +10,8 @@ def test_load_default_config():
     """Kiểm tra nạp config từ config.yaml thành công."""
     config = load_config()
     assert isinstance(config, AppConfig)
-    assert config.system.symbol == "XAUUSD"
-    assert config.system.timeframe == "M5"
+    assert config.binance.symbol == "BTCUSDT"
+    assert config.binance.interval == "5m"
     assert config.volume_filter.window_size == 100
     assert config.volume_filter.lower_percentile == 20.0
     assert config.volume_filter.upper_percentile == 85.0
@@ -25,13 +25,13 @@ def test_trade_signal_schema():
     now = datetime.utcnow()
     signal = TradeSignal(
         timestamp=now,
-        symbol="XAUUSD",
+        symbol="BTCUSDT",
         direction="LONG",
-        entry_price=2650.0,
-        stop_loss=2646.0,
-        take_profit=2656.0,
-        delta_sl=4.0,
-        delta_tp=6.0,
+        entry_price=65000.0,
+        stop_loss=64600.0,
+        take_profit=65600.0,
+        delta_sl=400.0,
+        delta_tp=600.0,
         rr_ratio=1.5,
         suggested_lot=0.25,
         confidence=0.85,

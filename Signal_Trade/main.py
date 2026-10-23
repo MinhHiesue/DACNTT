@@ -1,6 +1,6 @@
 """=====================================================================
-XAU/USD PATTERN-MATCHING SIGNAL BOT (M5)
-Main Application & Central Orchestrator
+BINANCE PATTERN-MATCHING SIGNAL BOT (M5)
+Main Application & Central Orchestrator (Signal-Only Alert System)
 ====================================================================="""
 import argparse
 import sys
@@ -30,14 +30,13 @@ from src.features.extractor import FeatureExtractor
 from src.engine.similarity_engine import SimilarityEngine
 from src.engine.risk_manager import RiskManager
 from src.execution.telegram_bot import TelegramNotifier
-from src.execution.mt5_executor import MT5Executor
-from src.execution.mt5_listener import RealtimeBarListener
-from src.data.mt5_loader import MT5DataLoader
+from src.execution.binance_listener import BinanceBarListener
+from src.data.binance_loader import BinanceDataLoader
 
 
 def start_heartbeat_service(
     telegram_bot: TelegramNotifier,
-    mt5_loader: MT5DataLoader,
+    binance_loader: BinanceDataLoader,
     symbol: str,
     interval_hours: float = 4.0
 ):
@@ -47,15 +46,15 @@ def start_heartbeat_service(
         while True:
             time.sleep(interval_hours * 3600)
             uptime_hours = (time.time() - start_time) / 3600.0
-            is_connected = mt5_loader.is_connected
-            status_text = "🟢 Connected" if is_connected else "🔴 Disconnected"
+            is_connected = binance_loader.is_connected
+            status_text = "🟢 Connected (Binance API OK)" if is_connected else "🔴 Disconnected"
 
             msg = (
                 f"💓 <b>[HEARTBEAT - BOT STATUS]</b>\n"
                 f"• <b>Symbol:</b> {symbol} M5\n"
-                f"• <b>MT5 Status:</b> {status_text}\n"
+                f"• <b>Binance API:</b> {status_text}\n"
                 f"• <b>Uptime:</b> {uptime_hours:.1f} giờ\n"
-                f"• <i>Hệ thống vẫn đang giám sát thị trường ổn định.</i>"
+                f"• <i>Hệ thống quét mẫu hình đang giám sát thị trường liên tục.</i>"
             )
             telegram_bot.send_message(msg)
 
@@ -63,20 +62,21 @@ def start_heartbeat_service(
     thread.start()
 
 
-def run_bot(mode: str = "dry-run"):
-    """Khởi chạy vòng lặp xử lý chính của Bot ở chế độ dry-run hoặc live."""
+def run_bot(mode: str = "signal"):
+    """Khởi chạy vòng lặp giám sát và bắn tín hiệu theo thời gian thực."""
     config = load_config()
     setup_logger(log_level=config.system.log_level, logs_dir=config.paths.logs_dir)
 
-    symbol = config.system.symbol
+    symbol = config.binance.symbol
+    interval = config.binance.interval
     logger.info("=====================================================")
-    logger.info("🤖 KHỞI ĐỘNG XAU/USD PATTERN-MATCHING SIGNAL BOT (M5)")
-    logger.info(f"• Chế độ hoạt động : [{mode.upper()}]")
-    logger.info(f"• Mã giao dịch     : {symbol}")
-    logger.info(f"• Tự động đặt lệnh : {'BẬT (LIVE)' if mode == 'live' and config.execution.auto_trade else 'TẮT (ALERT ONLY)'}")
+    logger.info(f"🤖 KHỞI ĐỘNG BINANCE PATTERN SIGNAL BOT ({symbol} {interval.upper()})")
+    logger.info("• Chế độ hoạt động : [SIGNAL-ONLY / PHÁT TÍN HIỆU CẢNH BÁO]")
+    logger.info("• Nguồn dữ liệu     : Binance Public REST & WebSocket")
+    logger.info("• Giao dịch thật/demo: TẮT (100% không can thiệp đặt lệnh)")
     logger.info("=====================================================")
 
-    # 1. Khởi tạo các module lõi
+    # 1. Khởi tạo các module tính toán
     volume_filter = VolumeRegimeFilter(
         window_size=config.volume_filter.window_size,
         lower_percentile=config.volume_filter.lower_percentile,
@@ -92,7 +92,9 @@ def run_bot(mode: str = "dry-run"):
     pattern_db_path = Path(config.paths.pattern_db)
     if not pattern_db_path.exists():
         logger.error(f"Không tìm thấy cơ sở dữ liệu mẫu hình tại: {pattern_db_path.resolve()}")
-        logger.error("Vui lòng chạy lệnh: python main.py --mode mine để tạo Memory Bank trước.")
+        logger.error("Vui lòng tải dữ liệu và chạy mining trước:")
+        logger.error("  1) python scripts/download_data.py")
+        logger.error("  2) python main.py --mode mine")
         sys.exit(1)
 
     similarity_engine = SimilarityEngine(
@@ -102,32 +104,31 @@ def run_bot(mode: str = "dry-run"):
 
     risk_manager = RiskManager(config=config.risk_manager)
     telegram_bot = TelegramNotifier(credentials=config.telegram)
-    mt5_executor = MT5Executor(
-        magic_number=config.execution.magic_number,
-        slippage_points=config.execution.slippage_points
+    binance_loader = BinanceDataLoader(
+        base_url=config.binance.base_url,
+        market_type=config.binance.market_type,
+        timeout_sec=config.binance.timeout_sec
     )
 
-    # 2. Khởi tạo kết nối MT5
-    mt5_loader = MT5DataLoader(
-        path=config.mt5.path,
-        login=config.mt5.login,
-        password=config.mt5.password,
-        server=config.mt5.server
-    )
-    mt5_loader.connect()
+    # 2. Kiểm tra kết nối mạng tới Binance
+    if not binance_loader.ping():
+        logger.warning("Không thể ping tới Binance API. Kiểm tra lại kết nối mạng internet.")
+    else:
+        logger.success("Kết nối Binance API thành công!")
 
     # 3. Gửi thông báo khởi động qua Telegram
     telegram_bot.send_message(
-        f"🚀 <b>XAU/USD Pattern Bot đã khởi động!</b>\n"
-        f"• Chế độ: <code>{mode.upper()}</code>\n"
+        f"🚀 <b>Binance Pattern Signal Bot đã sẵn sàng!</b>\n"
+        f"• Cặp giao dịch: <code>{symbol} {interval.upper()}</code>\n"
         f"• Số mẫu hình ký ức: <b>{len(similarity_engine.vectors):,}</b> mẫu\n"
-        f"• Ngưỡng tương đồng: <b>{config.similarity_engine.min_similarity*100:.0f}%</b>"
+        f"• Ngưỡng tương đồng: <b>{config.similarity_engine.min_similarity*100:.0f}%</b>\n"
+        f"• Chế độ: <b>Bắn tín hiệu tự động</b>"
     )
 
-    # 4. Kích hoạt dịch vụ Heartbeat
-    start_heartbeat_service(telegram_bot, mt5_loader, symbol)
+    # 4. Kích hoạt dịch vụ Heartbeat 4h
+    start_heartbeat_service(telegram_bot, binance_loader, symbol)
 
-    # 5. Định nghĩa chuỗi xử lý (Pipeline) khi nến M5 đóng
+    # 5. Pipeline xử lý khi phát hiện nến M5 đóng cửa
     def on_bar_closed_pipeline(df_closed):
         try:
             latest_time = df_closed.iloc[-1]['timestamp']
@@ -160,32 +161,28 @@ def run_bot(mode: str = "dry-run"):
                 return
 
             logger.success(
-                f"🎯 TÍN HIỆU ĐƯỢC PHÊ DUYỆT: {signal.direction} @ {signal.entry_price:.2f} "
-                f"(SL: {signal.stop_loss:.2f}, TP: {signal.take_profit:.2f}, R:R {signal.rr_ratio:.2f})"
+                f"🎯 TÍN HIỆU ĐƯỢC PHÊ DUYỆT: {signal.direction} @ {signal.entry_price:,.2f} "
+                f"(SL: {signal.stop_loss:,.2f}, TP: {signal.take_profit:,.2f}, R:R {signal.rr_ratio:.2f})"
             )
 
             # Bước 5: Gửi cảnh báo Telegram kèm ảnh biểu đồ snapshot
             telegram_bot.send_signal_alert(signal, setup_bars=setup_15)
 
-            # Bước 6: Khớp lệnh MT5 nếu ở chế độ LIVE
-            if mode == "live" and config.execution.auto_trade:
-                mt5_executor.execute_market_order(signal)
-
         except Exception as e:
             logger.exception(f"Lỗi ngoại lệ trong pipeline xử lý nến: {e}")
 
     # 6. Khởi tạo Bar Listener và đăng ký Graceful Shutdown
-    listener = RealtimeBarListener(
+    listener = BinanceBarListener(
         symbol=symbol,
+        interval=interval,
         poll_interval_sec=config.execution.poll_interval_sec,
-        mt5_loader=mt5_loader
+        data_loader=binance_loader
     )
 
     def shutdown_handler(sig, frame):
         logger.warning("\nNhận tín hiệu dừng hệ thống (Ctrl+C). Đang tắt an toàn...")
-        telegram_bot.send_message("🛑 <b>XAU/USD Pattern Bot đã dừng an toàn.</b>")
+        telegram_bot.send_message(f"🛑 <b>Binance Signal Bot ({symbol}) đã dừng an toàn.</b>")
         listener.stop()
-        mt5_loader.disconnect()
         sys.exit(0)
 
     signal.signal(signal.SIGINT, shutdown_handler)
@@ -196,22 +193,25 @@ def run_bot(mode: str = "dry-run"):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="XAU/USD M5 Pattern-Matching Signal Bot CLI")
+    parser = argparse.ArgumentParser(description="Binance Pattern-Matching Signal Bot CLI")
     parser.add_argument(
         "--mode",
-        choices=["dry-run", "live", "backtest", "mine"],
-        default="dry-run",
-        help="Bot operation mode: dry-run (default), live, backtest, mine"
+        choices=["signal", "mine", "backtest", "download"],
+        default="signal",
+        help="Bot operation mode: signal (default), mine, backtest, download"
     )
     args = parser.parse_args()
 
-    if args.mode == "mine":
+    if args.mode == "download":
+        from scripts.download_data import main as download_main
+        download_main()
+    elif args.mode == "mine":
         from scripts.mine_patterns import main as mine_main
         mine_main()
     elif args.mode == "backtest":
         from scripts.run_backtest import main as backtest_main
         backtest_main()
-    elif args.mode in ["dry-run", "live"]:
+    elif args.mode == "signal":
         run_bot(mode=args.mode)
 
 

@@ -1,10 +1,10 @@
 # =====================================================================
-# SCRIPT KHỞI CHẠY VÀ BẢO VỆ TIẾN TRÌNH XAU/USD PATTERN BOT (WINDOWS)
+# SCRIPT KHỞI CHẠY VÀ BẢO VỆ TIẾN TRÌNH BINANCE PATTERN SIGNAL BOT (WINDOWS)
 # Tự động khởi động lại nếu tiến trình bị crash hoặc mất kết nối
 # =====================================================================
 
 param (
-    [string]$Mode = "dry-run"
+    [string]$Mode = "signal"
 )
 
 $ErrorActionPreference = "Continue"
@@ -21,7 +21,7 @@ if (-not (Test-Path $PythonExe)) {
 }
 
 Write-Host "==========================================================" -ForegroundColor Green
-Write-Host "KHỞI CHẠY XAU/USD PATTERN BOT Ở CHẾ ĐỘ: [$Mode]" -ForegroundColor Cyan
+Write-Host "KHỞI CHẠY BINANCE PATTERN SIGNAL BOT Ở CHẾ ĐỘ: [$Mode]" -ForegroundColor Cyan
 Write-Host "Thư mục làm việc: $RootDir" -ForegroundColor Gray
 Write-Host "Nhấn Ctrl+C để thoát khỏi chế độ bảo vệ." -ForegroundColor Yellow
 Write-Host "==========================================================" -ForegroundColor Green

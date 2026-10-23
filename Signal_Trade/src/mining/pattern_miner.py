@@ -187,8 +187,9 @@ class HistoricalPatternMiner:
 
 
 def run_mining_pipeline(
-    raw_data_path: Union[str, Path] = "data/raw/xauusd_m5.parquet",
-    output_pattern_path: Union[str, Path] = "data/patterns/winning_patterns.parquet"
+    raw_data_path: Union[str, Path] = "data/raw/btcusdt_m5.parquet",
+    output_pattern_path: Union[str, Path] = "data/patterns/winning_patterns.parquet",
+    miner: Optional[HistoricalPatternMiner] = None
 ) -> pd.DataFrame:
     """Nạp dữ liệu thô, thực hiện khai thác mẫu hình và lưu vào parquet."""
     raw_path = Path(raw_data_path)
@@ -196,7 +197,8 @@ def run_mining_pipeline(
         raise FileNotFoundError(f"Không tìm thấy file nến thô tại: {raw_path.resolve()}")
 
     df = load_from_parquet(raw_path)
-    miner = HistoricalPatternMiner()
+    if miner is None:
+        miner = HistoricalPatternMiner()
     patterns_df = miner.mine_patterns(df)
 
     if not patterns_df.empty:

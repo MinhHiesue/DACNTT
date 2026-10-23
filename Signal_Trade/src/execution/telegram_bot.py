@@ -1,4 +1,4 @@
-"""Module 5 (Execution): Gửi cảnh báo tín hiệu qua Telegram Bot."""
+"""Module 5 (Execution / Alerting): Gửi cảnh báo tín hiệu qua Telegram Bot."""
 import time
 from typing import Optional
 import requests
@@ -27,22 +27,22 @@ class TelegramNotifier:
         time_str = signal.timestamp.strftime("%Y-%m-%d %H:%M:%S")
 
         msg = (
-            f"🔔 <b>[XAU/USD M5 PATTERN ALERT]</b> 🔔\n"
+            f"🔔 <b>[{signal.symbol} M5 PATTERN SIGNAL]</b> 🔔\n"
             f"━━━━━━━━━━━━━━━━━━━━━━\n"
-            f"🎯 <b>Hướng lệnh:</b> {dir_emoji}\n"
+            f"🎯 <b>Khuyến nghị:</b> {dir_emoji}\n"
             f"⏱ <b>Thời gian đóng nến:</b> <code>{time_str} UTC</code>\n\n"
-            f"📊 <b>THÔNG SỐ VÀO LỆNH:</b>\n"
-            f"• <b>Giá Entry:</b> <code>{signal.entry_price:.2f}</code>\n"
-            f"• <b>Stop Loss (SL):</b> <code>{signal.stop_loss:.2f}</code> (Δ {signal.delta_sl:.2f} USD)\n"
-            f"• <b>Take Profit (TP):</b> <code>{signal.take_profit:.2f}</code> (Δ {signal.delta_tp:.2f} USD)\n"
-            f"• <b>Tỷ lệ R:R:</b> <b>{signal.rr_ratio:.2f}</b> (Chuẩn >= 1.5)\n"
-            f"• <b>Khối lượng đề xuất:</b> <code>{signal.suggested_lot:.2f} Lot</code> (1.0% Vốn)\n\n"
-            f"🧠 <b>DỮ LIỆU KÝ ỨC MẪU HÌNH:</b>\n"
+            f"📊 <b>THÔNG SỐ KỸ THUẬT:</b>\n"
+            f"• <b>Giá Entry:</b> <code>{signal.entry_price:,.2f}</code>\n"
+            f"• <b>Stop Loss (SL):</b> <code>{signal.stop_loss:,.2f}</code> (Δ {signal.delta_sl:,.2f} USD)\n"
+            f"• <b>Take Profit (TP):</b> <code>{signal.take_profit:,.2f}</code> (Δ {signal.delta_tp:,.2f} USD)\n"
+            f"• <b>Tỷ lệ R:R:</b> <b>{signal.rr_ratio:.2f}</b> (Tối thiểu >= 1.5)\n"
+            f"• <b>Quản trị rủi ro:</b> <code>1.0% Vốn</code> / lệnh\n\n"
+            f"🧠 <b>DỮ LIỆU KÝ ỨC MẪU HÌNH (BINANCE):</b>\n"
             f"• <b>Độ đồng thuận:</b> <b>{signal.confidence * 100:.1f}%</b>\n"
             f"• <b>Số mẫu tương đồng:</b> {signal.matched_count} mẫu lịch sử\n"
             f"• <b>Hệ thống xác thực:</b> ✅ <b>{signal.status}</b>\n"
             f"━━━━━━━━━━━━━━━━━━━━━━\n"
-            f"⚡ <i>Tín hiệu tự động từ Pattern-Matching AI Bot</i>"
+            f"⚡ <i>Hệ thống phát tín hiệu tự động Binance Pattern-Matching AI</i>"
         )
         return msg
 

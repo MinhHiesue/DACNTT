@@ -53,7 +53,7 @@ def test_full_pipeline_end_to_end():
 
     # Bước 4: Risk Manager
     setup_15 = bars_df.iloc[-15:]
-    signal = risk_manager.evaluate_signal(match_res, setup_15, symbol="XAUUSD")
+    signal = risk_manager.evaluate_signal(match_res, setup_15, symbol="BTCUSDT")
     assert signal.status in ["APPROVED", "REJECTED"]
 
     # Bước 5: Thử nghiệm gửi Telegram alert (sẽ log mô phỏng an toàn)

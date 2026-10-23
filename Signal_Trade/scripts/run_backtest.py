@@ -67,7 +67,13 @@ def main():
 
     # 2. Huấn luyện Memory Bank CHỈ TRÊN TẬP TRAIN (Chống hoàn toàn Lookahead bias / Data leakage)
     logger.info("Đang xây dựng Memory Bank trên tập Train (70% thời gian đầu)...")
-    miner = HistoricalPatternMiner()
+    miner = HistoricalPatternMiner(
+        buffer_usd=config.risk_manager.buffer_usd,
+        min_sl_usd=config.risk_manager.min_sl_usd,
+        max_sl_usd=config.risk_manager.max_sl_usd,
+        min_rr_ratio=config.risk_manager.min_rr_ratio,
+        volume_window_size=config.volume_filter.window_size
+    )
     train_patterns_df = miner.mine_patterns(train_df)
 
     if train_patterns_df.empty:

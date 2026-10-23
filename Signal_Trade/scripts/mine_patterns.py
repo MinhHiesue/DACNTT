@@ -9,7 +9,7 @@ if str(root_dir) not in sys.path:
 
 from loguru import logger
 from src.core.config_loader import load_config
-from src.mining.pattern_miner import run_mining_pipeline
+from src.mining.pattern_miner import HistoricalPatternMiner, run_mining_pipeline
 
 
 def main():
@@ -23,7 +23,19 @@ def main():
     logger.info(f"Đích lưu trữ:  {pattern_path}")
     logger.info("=====================================================")
 
-    patterns_df = run_mining_pipeline(raw_data_path=raw_path, output_pattern_path=pattern_path)
+    miner = HistoricalPatternMiner(
+        buffer_usd=config.risk_manager.buffer_usd,
+        min_sl_usd=config.risk_manager.min_sl_usd,
+        max_sl_usd=config.risk_manager.max_sl_usd,
+        min_rr_ratio=config.risk_manager.min_rr_ratio,
+        volume_window_size=config.volume_filter.window_size
+    )
+
+    patterns_df = run_mining_pipeline(
+        raw_data_path=raw_path,
+        output_pattern_path=pattern_path,
+        miner=miner
+    )
 
     if not patterns_df.empty:
         long_count = int((patterns_df['direction'] == 1).sum())
