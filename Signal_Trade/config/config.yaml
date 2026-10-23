@@ -4,18 +4,18 @@
 # =====================================================================
 
 system:
-  symbol: "BTCUSDT"              # Cặp giao dịch Binance (BTCUSDT, ETHUSDT, PAXGUSDT, ...)
+  symbol: "XAUUSDT"             # Cặp giao dịch Binance Futures (XAUUSDT - Vàng vĩnh cửu)
   timeframe: "M5"                # Khung thời gian M5 (5 phút)
   timezone: "UTC"                # Múi giờ chuẩn hóa
   log_level: "INFO"              # DEBUG, INFO, WARNING, ERROR
 
-# Kết nối API Binance (Public API, không cần API Key để lấy dữ liệu)
+# Kết nối API Binance Futures (Public API, không cần API Key để lấy dữ liệu)
 binance:
-  symbol: "BTCUSDT"
+  symbol: "XAUUSDT"
   interval: "5m"
-  base_url: "https://api.binance.com"
-  ws_url: "wss://stream.binance.com:9443/ws"
-  market_type: "spot"            # "spot" hoặc "futures"
+  base_url: "https://fapi.binance.com"
+  ws_url: "wss://fstream.binance.com/ws"
+  market_type: "futures"         # "futures" cho XAUUSDT
   timeout_sec: 10.0
 
 # Module 1: Bộ lọc trạng thái khối lượng (Volume Regime Filter)
@@ -42,11 +42,11 @@ similarity_engine:
 # Module 4 & 5: Quản trị rủi ro & Định dạng tín hiệu (Risk Management)
 risk_manager:
   swing_window: 15               # Cửa sổ tìm đỉnh/đáy Swing Low/High
-  buffer_usd: 20.0               # Vùng đệm Stop Loss cho BTC (~20 USD)
+  buffer_usd: 2.0                # Vùng đệm Stop Loss cho Vàng (~2 USD)
   min_rr_ratio: 1.5              # Tỷ lệ R:R tối thiểu (1.5)
   risk_percent: 1.0              # Tỷ lệ rủi ro tham khảo (% vốn)
-  min_sl_usd: 50.0               # Khoảng cách SL tối thiểu (tránh dính spread)
-  max_sl_usd: 1200.0             # Khoảng cách SL tối đa cho 1 nhịp M5
+  min_sl_usd: 3.0                # Khoảng cách SL tối thiểu cho Vàng ($3)
+  max_sl_usd: 80.0               # Khoảng cách SL tối đa cho 1 nhịp M5 của Vàng
 
 # Module 5: Giám sát và Bắn tín hiệu (Signal Alerting)
 execution:
@@ -55,6 +55,6 @@ execution:
 
 # Đường dẫn lưu trữ tập tin
 paths:
-  raw_data: "data/raw/btcusdt_m5.parquet"
+  raw_data: "data/raw/xauusdt_m5.parquet"
   pattern_db: "data/patterns/winning_patterns.parquet"
   logs_dir: "logs"

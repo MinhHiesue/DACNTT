@@ -9,8 +9,8 @@ import { VolumeRegimeGauge } from '../components/market/VolumeRegimeGauge.jsx'
 import { useMarketData } from '../hooks/useMarketData.js'
 
 export function DashboardPage({ onNavigate, query }) {
-  const [asset, setAsset] = useState('btc')
-  const { volumeRegime } = useMarketData('BTCUSDT')
+  const [asset, setAsset] = useState('gold')
+  const { volumeRegime } = useMarketData('XAUUSDT')
 
   return (
     <>

@@ -30,7 +30,7 @@ export function PerformancePage() {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#161B22] border border-[#21262D] text-xs font-semibold text-cyan-300">
             <Database size={13} className="text-blue-400" />
-            <span>BTC/USDT · Binance M5</span>
+            <span>XAU/USDT · Binance Futures M5</span>
           </div>
 
           <button

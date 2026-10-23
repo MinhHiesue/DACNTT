@@ -59,7 +59,7 @@ export function ActiveSignalHero({ signal, onOpenInspector, onTriggerScan, isSca
                   ACTIVE AI SIGNAL HERO
                 </span>
                 <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-[#21262D] text-white border border-[#30363D]">
-                  {signal.symbol || 'BTC/USDT'} · M5
+                  {signal.symbol || 'XAU/USDT'} · M5
                 </span>
               </div>
               <h2 className="text-lg font-bold text-white tracking-tight flex items-center gap-2 mt-0.5">

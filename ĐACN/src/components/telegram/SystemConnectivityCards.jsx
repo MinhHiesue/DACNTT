@@ -40,7 +40,7 @@ export function SystemConnectivityCards({ health, online }) {
           <strong className="text-sm font-bold text-white">STREAMING LIVE</strong>
         </div>
         <small className="text-[11px] text-[#8B949E] block">
-          Luồng: btcusdt@kline_5m
+          Luồng: {health?.symbol ? health.symbol.toLowerCase() : 'xauusdt'}@kline_5m
         </small>
       </article>
 

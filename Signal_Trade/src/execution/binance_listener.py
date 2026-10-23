@@ -116,7 +116,9 @@ class BinanceBarListener:
         import websocket
 
         stream_name = f"{self.symbol.lower()}@kline_{self.interval}"
-        ws_url = f"wss://stream.binance.com:9443/ws/{stream_name}"
+        is_futures = (self.data_loader and getattr(self.data_loader, 'market_type', '') == 'futures') or 'XAU' in self.symbol
+        ws_base = "wss://fstream.binance.com/ws" if is_futures else "wss://stream.binance.com:9443/ws"
+        ws_url = f"{ws_base}/{stream_name}"
         logger.info(f"Đang kết nối tới Binance WebSocket stream: {ws_url}...")
 
         def on_open(ws):

@@ -52,6 +52,12 @@ class BinanceDataLoader:
         """Gửi lệnh ping kiểm tra trạng thái Binance."""
         return self.is_connected
 
+    def _get_endpoint_for_symbol(self, symbol: str) -> str:
+        """Tự động phân luồng tới Binance Futures nếu là XAUUSDT hoặc cấu hình futures."""
+        if "XAU" in symbol.upper() or self.market_type == "futures":
+            return "https://fapi.binance.com/fapi/v1/klines"
+        return self.klines_endpoint
+
     def _parse_klines_to_dataframe(self, raw_klines: List[List[Any]]) -> pd.DataFrame:
         """
         Chuyển đổi danh sách nến trả về từ Binance sang DataFrame chuẩn:
@@ -92,22 +98,58 @@ class BinanceDataLoader:
         count: int = 105
     ) -> pd.DataFrame:
         """
-        Lấy N nến gần nhất từ Binance.
-        Nến cuối cùng [-1] thường là nến đang chạy.
+        Lấy N nến gần nhất từ Binance. Hỗ trợ phân trang mượt mà nếu count > 1000 (tối đa 2000 nến).
+        Nến cuối cùng [-1] luôn là nến đang chạy của phiên hiện tại.
         """
-        params = {
-            "symbol": symbol.upper(),
-            "interval": interval,
-            "limit": min(count, 1000)
-        }
-        try:
-            resp = self.session.get(self.klines_endpoint, params=params, timeout=self.timeout_sec)
-            resp.raise_for_status()
-            raw_data = resp.json()
-            return self._parse_klines_to_dataframe(raw_data)
-        except Exception as e:
-            logger.error(f"Lỗi khi tải nến gần nhất từ Binance ({symbol} {interval}): {e}")
-            raise
+        symbol = symbol.upper()
+        endpoint = self._get_endpoint_for_symbol(symbol)
+        if count <= 1000:
+            params = {
+                "symbol": symbol,
+                "interval": interval,
+                "limit": count
+            }
+            try:
+                resp = self.session.get(endpoint, params=params, timeout=self.timeout_sec)
+                resp.raise_for_status()
+                raw_data = resp.json()
+                return self._parse_klines_to_dataframe(raw_data)
+            except Exception as e:
+                logger.error(f"Lỗi khi tải nến gần nhất từ Binance ({symbol} {interval}): {e}")
+                raise
+        else:
+            try:
+                # 1. Tải 1000 nến gần nhất tính đến thời điểm hiện tại
+                params = {
+                    "symbol": symbol,
+                    "interval": interval,
+                    "limit": 1000
+                }
+                resp = self.session.get(endpoint, params=params, timeout=self.timeout_sec)
+                resp.raise_for_status()
+                recent_klines = resp.json()
+
+                all_klines = []
+                remaining = count - len(recent_klines)
+                if remaining > 0 and recent_klines:
+                    # 2. Lùi về quá khứ từ cây nến sớm nhất của mẻ 1
+                    earliest_ts = int(recent_klines[0][0]) - 1
+                    past_params = {
+                        "symbol": symbol,
+                        "interval": interval,
+                        "endTime": earliest_ts,
+                        "limit": min(remaining, 1000)
+                    }
+                    past_resp = self.session.get(endpoint, params=past_params, timeout=self.timeout_sec)
+                    if past_resp.status_code == 200:
+                        past_klines = past_resp.json()
+                        all_klines.extend(past_klines)
+
+                all_klines.extend(recent_klines)
+                return self._parse_klines_to_dataframe(all_klines)
+            except Exception as e:
+                logger.error(f"Lỗi khi tải {count} nến từ Binance ({symbol} {interval}): {e}")
+                raise
 
     def fetch_historical_bars(
         self,
@@ -141,6 +183,7 @@ class BinanceDataLoader:
 
         all_klines: List[List[Any]] = []
         current_start = start_ts
+        endpoint = self._get_endpoint_for_symbol(symbol)
 
         while current_start < end_ts:
             params = {
@@ -151,7 +194,7 @@ class BinanceDataLoader:
                 "limit": chunk_size
             }
             try:
-                resp = self.session.get(self.klines_endpoint, params=params, timeout=self.timeout_sec)
+                resp = self.session.get(endpoint, params=params, timeout=self.timeout_sec)
                 resp.raise_for_status()
                 data = resp.json()
                 if not data:

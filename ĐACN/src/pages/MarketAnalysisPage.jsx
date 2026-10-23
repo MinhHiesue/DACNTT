@@ -11,21 +11,22 @@ import { MARKET_PAIRS } from '../data/market.js'
 import { buildMarketCandles, calculateMarketIndicators } from '../data/marketAnalysis.js'
 
 export function MarketAnalysisPage() {
-  const [pair, setPair] = useState('BTC/USDT')
+  const [pair, setPair] = useState('XAU/USDT')
   const [timeframe, setTimeframe] = useState('5m')
   const [barLimit, setBarLimit] = useState(1000)
 
+  const activeSymbol = pair.replace('/', '')
   // Real data hooks
-  const { klines, volumeRegime, loading: marketLoading, refresh: refreshMarket } = useMarketData('BTCUSDT', barLimit)
+  const { klines, volumeRegime, loading: marketLoading, refresh: refreshMarket } = useMarketData(activeSymbol, barLimit)
   const { latestSignal, signalsHistory, refresh: refreshSignals } = useSignals(5000)
 
-  const market = MARKET_PAIRS[pair] || MARKET_PAIRS['BTC/USDT']
+  const market = MARKET_PAIRS[pair] || MARKET_PAIRS['XAU/USDT']
   const fallbackCandles = buildMarketCandles(pair, timeframe)
   const indicators = calculateMarketIndicators(fallbackCandles)
 
   // Giá nến mới nhất từ live klines hoặc fallback
   const lastBar = klines && klines.length > 0 ? klines[klines.length - 1] : fallbackCandles[fallbackCandles.length - 1]
-  const currentPrice = lastBar.close || lastBar.price || 67482.35
+  const currentPrice = lastBar.close || lastBar.price || 4005.50
   const currentRsi = indicators.rsi[indicators.rsi.length - 1]?.value ?? 52.4
   const currentMacd = indicators.macd[indicators.macd.length - 1]?.value ?? 14.8
 
@@ -41,7 +42,7 @@ export function MarketAnalysisPage() {
         <div>
           <div className="eyebrow">
             <span className="eyebrow-line" /> MARKET INTELLIGENCE
-            <span className="heading-time">BINANCE BTC/USDT M5</span>
+            <span className="heading-time">BINANCE FUTURES {pair} M5</span>
           </div>
           <h1>
             Biểu đồ nến & Phân tích thị trường<span>.</span>

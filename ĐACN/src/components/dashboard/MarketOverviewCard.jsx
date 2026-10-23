@@ -5,9 +5,12 @@ import { useMarketData } from '../../hooks/useMarketData.js'
 import { useSignals } from '../../hooks/useSignals.js'
 import { formatSignalPrice } from '../../data/signalUtils.js'
 
-export function MarketOverviewCard({ onNavigate }) {
-  const market = ASSETS.btc || { label: 'Bitcoin (Binance)', symbol: 'BTC / USDT', price: 67482.35, change: 1.85 }
-  const { klines } = useMarketData('BTCUSDT', 300)
+export function MarketOverviewCard({ asset = 'gold', onNavigate }) {
+  const isGold = asset === 'gold' || asset === 'xau'
+  const currentSymbol = isGold ? 'XAUUSDT' : 'BTCUSDT'
+  const displayPair = isGold ? 'XAU/USDT' : 'BTC/USDT'
+  const market = (isGold ? ASSETS.gold : ASSETS.btc) || { label: 'Vàng vĩnh cửu (Binance Futures)', symbol: 'XAU / USDT', price: 4005.50, change: 0.85 }
+  const { klines } = useMarketData(currentSymbol, 300)
   const { latestSignal, signalsHistory } = useSignals(8000)
 
   const lastBar = klines && klines.length > 0 ? klines[klines.length - 1] : null
@@ -19,8 +22,8 @@ export function MarketOverviewCard({ onNavigate }) {
         <div>
           <div className="panel-kicker">REALTIME PRICE ACTION</div>
           <div className="chart-title-row">
-            <h2>BTC/USDT</h2>
-            <span className="asset-tag tag-btc">Binance M5</span>
+            <h2>{displayPair}</h2>
+            <span className={`asset-tag ${isGold ? 'tag-gold' : 'tag-btc'}`}>{isGold ? 'Vàng Futures M5' : 'Binance M5'}</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -44,7 +47,7 @@ export function MarketOverviewCard({ onNavigate }) {
         <span className="positive-change">
           <ArrowUpRight size={14} /> +{market.change}%
         </span>
-        <span className="chart-price-period">Khung M5 · Binance Feed</span>
+        <span className="chart-price-period">Khung M5 · Binance Futures Feed</span>
       </div>
 
       <div className="my-2">
@@ -52,7 +55,7 @@ export function MarketOverviewCard({ onNavigate }) {
           klines={klines}
           signals={signalsHistory}
           activeSignal={latestSignal}
-          symbol="BTC/USDT"
+          symbol={displayPair}
           timeframe="5m"
           height={320}
         />

@@ -42,8 +42,8 @@ export function SignalDetailPanel({ signal, onOpenInspector }) {
       {/* Symbol & Approval Status */}
       <div className="detail-pair-row">
         <div>
-          <strong>{signal.symbol || signal.pair || 'BTC/USDT'}</strong>
-          <span>Khung M5 · Binance Public API</span>
+          <strong>{signal.symbol || signal.pair || 'XAU/USDT'}</strong>
+          <span>Khung M5 · Binance Futures API</span>
         </div>
         <span className={`signal-status ${isApproved ? 'status-active' : 'status-stop'}`}>
           <i />
@@ -101,8 +101,8 @@ export function SignalDetailPanel({ signal, onOpenInspector }) {
         </div>
         <p className="text-[#C9D1D9] text-[11px] leading-relaxed">
           • <b>Rủi ro đề xuất:</b> 1.0% Vốn tài khoản ($100 USD trên $10,000 USD).<br />
-          • <b>Khối lượng lệnh:</b> ~{(100 / (deltaSl + 1e-6)).toFixed(3)} BTC (Position Size).<br />
-          • <b>Căn cứ Stop Loss:</b> Swing {isLong ? 'Low' : 'High'} 15 nến + Vùng đệm $20.0 USD.
+          • <b>Khối lượng lệnh:</b> ~{(100 / (deltaSl + 1e-6)).toFixed(2)} Oz Vàng (Position Size).<br />
+          • <b>Căn cứ Stop Loss:</b> Swing {isLong ? 'Low' : 'High'} 15 nến + Vùng đệm $2.0 USD.
         </p>
       </div>
 

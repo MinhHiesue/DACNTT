@@ -162,7 +162,7 @@ def get_health():
 
 @app.get("/api/market/klines", response_model=KlinesResponse)
 def get_klines(
-    symbol: str = Query("BTCUSDT", description="Cặp giao dịch"),
+    symbol: str = Query("XAUUSDT", description="Cặp giao dịch"),
     limit: int = Query(500, ge=10, le=2000, description="Số lượng nến")
 ):
     """
@@ -182,9 +182,14 @@ def get_klines(
             except Exception as e:
                 logger.warning(f"Lấy nến trực tiếp từ Binance thất bại: {e}. Đang nạp kho Parquet dự phòng...")
 
-        # Nếu chưa có dữ liệu hoặc yêu cầu độ sâu lớn > 1000 nến, nạp từ Parquet lưu trữ 17,280 nến
+        # Nếu chưa có dữ liệu hoặc yêu cầu độ sâu lớn > 1000 nến, nạp từ Parquet
         if df is None or len(df) < limit:
-            parquet_path = Path(__file__).resolve().parent.parent.parent / "data" / "raw" / "btcusdt_m5.parquet"
+            parquet_name = f"{symbol.lower()}_m5.parquet"
+            parquet_path = Path(__file__).resolve().parent.parent.parent / "data" / "raw" / parquet_name
+            if not parquet_path.exists():
+                parquet_path = Path(__file__).resolve().parent.parent.parent / "data" / "raw" / "xauusdt_m5.parquet"
+            if not parquet_path.exists():
+                parquet_path = Path(__file__).resolve().parent.parent.parent / "data" / "raw" / "btcusdt_m5.parquet"
             if parquet_path.exists():
                 local_df = load_from_parquet(parquet_path)
                 if not local_df.empty:
@@ -216,7 +221,7 @@ def get_klines(
 
 
 @app.get("/api/market/volume-regime", response_model=VolumeRegimeResponse)
-def get_volume_regime(symbol: str = "BTCUSDT"):
+def get_volume_regime(symbol: str = "XAUUSDT"):
     """Đánh giá trạng thái phân vị khối lượng (Volume Regime P20 - P85)."""
     try:
         df = state.binance_loader.fetch_recent_bars(

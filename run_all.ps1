@@ -8,7 +8,7 @@ $ErrorActionPreference = "Continue"
 Write-Host ""
 Write-Host "======================================================================" -ForegroundColor Cyan
 Write-Host "   🚀 NORTHSTAR TRADING INTELLIGENCE — 1-CLICK LAUNCHER              " -ForegroundColor Green
-Write-Host "   Binance M5 Pattern-Matching AI + Realtime TradingView Dashboard   " -ForegroundColor Yellow
+Write-Host "   Binance Futures XAUUSDT (Vàng) AI + Realtime TradingView Dashboard" -ForegroundColor Yellow
 Write-Host "======================================================================" -ForegroundColor Cyan
 Write-Host ""
 

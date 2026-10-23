@@ -9,14 +9,14 @@ export function LiveTerminalConsole({ customLogs = [] }) {
 
   // Default operational logs reflecting Signal_Trade real event lifecycle
   const initialLogs = [
-    { id: 1, time: '19:00:00', level: 'INFO', msg: 'Khởi tạo Signal_Trade Engine v2.0 (Binance M5 Mode)' },
-    { id: 2, time: '19:00:01', level: 'INFO', msg: 'Nạp Memory Bank: 1,977 vector 49 chiều từ winning_patterns.parquet' },
-    { id: 3, time: '19:00:02', level: 'SUCCESS', msg: 'Kết nối Binance WebSocket thành công: stream btcusdt@kline_5m' },
-    { id: 4, time: '19:05:00', level: 'INFO', msg: '--- PHÁT HIỆN ĐÓNG NẾN M5: Close = 67,482.35 USD ---' },
-    { id: 5, time: '19:05:01', level: 'INFO', msg: 'Module 1 Volume Filter: Vol = 42.50 BTC ∈ [P20=18.20, P85=65.40] → PASS' },
+    { id: 1, time: '19:00:00', level: 'INFO', msg: 'Khởi tạo Signal_Trade Engine v2.0 (Binance Futures XAUUSDT M5 Mode)' },
+    { id: 2, time: '19:00:01', level: 'INFO', msg: 'Nạp Memory Bank: 1,230 vector 49 chiều từ winning_patterns.parquet' },
+    { id: 3, time: '19:00:02', level: 'SUCCESS', msg: 'Kết nối Binance Futures WebSocket thành công: stream xauusdt@kline_5m' },
+    { id: 4, time: '19:05:00', level: 'INFO', msg: '--- PHÁT HIỆN ĐÓNG NẾN M5: Close = 4,005.50 USD ---' },
+    { id: 5, time: '19:05:01', level: 'INFO', msg: 'Module 1 Volume Filter: Vol = 1,420 Oz ∈ [P20=840, P85=3,700] → PASS' },
     { id: 6, time: '19:05:01', level: 'INFO', msg: 'Module 2 Feature Extractor: Trích xuất vector 49 chiều chuẩn hóa L2' },
-    { id: 7, time: '19:05:02', level: 'SUCCESS', msg: 'Module 3 FAISS Engine: 14 mẫu hình ký ức khớp (Độ đồng thuận 87.5% LONG)' },
-    { id: 8, time: '19:05:02', level: 'SUCCESS', msg: 'Module 4 Risk Manager: Swing Low SL=67,062.35, TP=68,112.35, R:R=1.50 → APPROVED' },
+    { id: 7, time: '19:05:02', level: 'SUCCESS', msg: 'Module 3 FAISS Engine: 16 mẫu hình ký ức khớp (Độ đồng thuận 88.5% LONG)' },
+    { id: 8, time: '19:05:02', level: 'SUCCESS', msg: 'Module 4 Risk Manager: Swing Low SL=3,996.50, TP=4,019.00, R:R=1.50 → APPROVED' },
     { id: 9, time: '19:05:03', level: 'SUCCESS', msg: 'Telegram Notifier: Bắn bản tin HTML kèm biểu đồ snapshot 15 nến setup tới Bot' },
     { id: 10, time: '19:10:00', level: 'INFO', msg: 'Hệ thống đang chờ đợi nến M5 tiếp theo...' }
   ]
