@@ -1,7 +1,7 @@
 # TASK-01: XÂY DỰNG BACKEND API (FASTAPI) & DATA BRIDGE CHO SIGNAL_TRADE
 
 ## 1. TRẠNG THÁI (STATUS)
-* **Trạng thái hiện tại:** 🔲 Chưa bắt đầu (Pending)
+* **Trạng thái hiện tại:** ✅ Hoàn thành (Completed)
 * **Người phụ trách:** AI Agent / Dev
 * **Độ ưu tiên:** Khẩn cấp (P0 - Nền tảng cho toàn bộ giao diện)
 * **Phụ thuộc:** `Signal_Trade` (Toàn bộ các module đã hoàn thành)
@@ -14,9 +14,9 @@ Xây dựng một dịch vụ máy chủ API tốc độ cao, trọng lượng n
 ---
 
 ## 3. MỤC TIÊU CHI TIẾT (OBJECTIVES)
-* [ ] Cài đặt các thư viện cần thiết: `fastapi>=0.100.0`, `uvicorn>=0.23.0`.
-* [ ] Thiết lập cấu hình CORS (`CORSMiddleware`) cho phép frontend `http://localhost:5173` truy cập an toàn.
-* [ ] Xây dựng hệ thống Endpoints RESTful chuẩn hóa:
+* [x] Cài đặt các thư viện cần thiết: `fastapi>=0.100.0`, `uvicorn>=0.23.0`.
+* [x] Thiết lập cấu hình CORS (`CORSMiddleware`) cho phép frontend `http://localhost:5173` truy cập an toàn.
+* [x] Xây dựng hệ thống Endpoints RESTful chuẩn hóa:
   1. `GET /api/health`: Kiểm tra trạng thái máy chủ, thời gian hoạt động (uptime), trạng thái kết nối Binance.
   2. `GET /api/market/klines`: Cung cấp 100-300 nến M5 gần nhất định dạng `{time, open, high, low, close, volume}` tương thích 100% với TradingView Lightweight Charts.
   3. `GET /api/market/volume-regime`: Trả về giá trị volume hiện tại, ngưỡng $P_{20}$, ngưỡng $P_{85}$, và trạng thái bộ lọc (PASS / REJECT).
@@ -26,7 +26,7 @@ Xây dựng một dịch vụ máy chủ API tốc độ cao, trọng lượng n
   7. `GET /api/performance/summary`: Tổng hợp chỉ số Backtest (Winrate, Profit Factor, Max Drawdown, Sharpe, Sortino) từ file `reports/`.
   8. `GET /api/performance/trades`: Danh sách chi tiết các lệnh giao dịch kiểm thử lịch sử từ `reports/backtest_trades.csv`.
   9. `POST /api/telegram/test-alert`: Endpoint kích hoạt gửi tin nhắn thử nghiệm về Telegram.
-* [ ] Hỗ trợ WebSocket `/ws/live` để bắn cập nhật nến mới và tín hiệu trực tiếp xuống giao diện mà không cần reload trang.
+* [x] Hỗ trợ WebSocket `/ws/live` để bắn cập nhật nến mới và tín hiệu trực tiếp xuống giao diện mà không cần reload trang.
 
 ---
 
@@ -84,9 +84,9 @@ def get_klines(symbol: str = "BTCUSDT", limit: int = 150):
 ---
 
 ## 6. CHECKLIST NGHIỆM THU (TICKBOX)
-- [ ] Cài đặt thành công `fastapi` và `uvicorn` vào môi trường ảo `Signal_Trade/venv`.
-- [ ] Tạo file `src/api/server.py` với đầy đủ các REST endpoints yêu cầu.
-- [ ] Chạy thử nghiệm server trên cổng `8000` và mở Swagger UI thành công tại `http://localhost:8000/docs`.
-- [ ] Kiểm tra endpoint `/api/market/klines` trả về đúng định dạng mảng nến M5 của BTCUSDT từ Binance.
-- [ ] Kiểm tra endpoint `/api/performance/summary` đọc đúng file `backtest_trades.csv`.
-- [ ] Viết unit test cho FastAPI endpoints đảm bảo HTTP status 200.
+- [x] Cài đặt thành công `fastapi` và `uvicorn` vào môi trường ảo `Signal_Trade/venv`.
+- [x] Tạo file `src/api/server.py` với đầy đủ các REST endpoints yêu cầu.
+- [x] Chạy thử nghiệm server trên cổng `8000` và mở Swagger UI thành công tại `http://localhost:8000/docs`.
+- [x] Kiểm tra endpoint `/api/market/klines` trả về đúng định dạng mảng nến M5 của BTCUSDT từ Binance.
+- [x] Kiểm tra endpoint `/api/performance/summary` đọc đúng file `backtest_trades.csv`.
+- [x] Viết unit test cho FastAPI endpoints đảm bảo HTTP status 200.

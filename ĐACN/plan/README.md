@@ -34,7 +34,7 @@ Tài liệu này tổng hợp toàn bộ các nhiệm vụ (tasks) trong lộ tr
 
 | Mã Task | Tên Task | File Chi Tiết | Phụ Thuộc | Trạng Thái |
 | :--- | :--- | :--- | :--- | :--- |
-| **TASK-01** | Xây dựng Backend API (FastAPI) & Data Bridge | [`task_01_backend_api_fastapi_and_data_bridge.md`](file:///d:/DACNTT-1/ĐACN/plan/task_01_backend_api_fastapi_and_data_bridge.md) | Không | 🔲 Chưa bắt đầu |
+| **TASK-01** | Xây dựng Backend API (FastAPI) & Data Bridge | [`task_01_backend_api_fastapi_and_data_bridge.md`](file:///d:/DACNTT-1/ĐACN/plan/task_01_backend_api_fastapi_and_data_bridge.md) | Không | ✅ Hoàn thành |
 | **TASK-02** | Chuẩn hóa Data Contracts & Dọn dẹp Frontend | [`task_02_clean_frontend_architecture_and_data_contracts.md`](file:///d:/DACNTT-1/ĐACN/plan/task_02_clean_frontend_architecture_and_data_contracts.md) | TASK-01 | 🔲 Chưa bắt đầu |
 | **TASK-03** | Tái cấu trúc Biểu đồ TradingView M5 (Live Markers & SL/TP Lines) | [`task_03_realtime_tradingview_chart_m5.md`](file:///d:/DACNTT-1/ĐACN/plan/task_03_realtime_tradingview_chart_m5.md) | TASK-01, TASK-02 | 🔲 Chưa bắt đầu |
 | **TASK-04** | Trung tâm Tín hiệu AI & Bộ So Khớp Ký Ức (Pattern Inspector) | [`task_04_ai_signals_and_pattern_memory_inspector.md`](file:///d:/DACNTT-1/ĐACN/plan/task_04_ai_signals_and_pattern_memory_inspector.md) | TASK-01, TASK-02 | 🔲 Chưa bắt đầu |
