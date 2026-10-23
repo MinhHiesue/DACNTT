@@ -42,6 +42,7 @@ Tài liệu này tổng hợp toàn bộ các nhiệm vụ (tasks) trong lộ tr
 | **TASK-06** | Phân Tích Hiệu Suất Backtest & Biểu Đồ Vốn (Interactive Equity Curve) | [`task_06_backtest_analytics_and_interactive_equity_curve.md`](file:///d:/DACNTT-1/ĐACN/plan/task_06_backtest_analytics_and_interactive_equity_curve.md) | TASK-01, TASK-02 | ✅ Hoàn thành |
 | **TASK-07** | Trung Tâm Giám Sát Vận Hành & Telegram Bot Hub | [`task_07_telegram_bot_monitor_and_system_hub.md`](file:///d:/DACNTT-1/ĐACN/plan/task_07_telegram_bot_monitor_and_system_hub.md) | TASK-01 | ✅ Hoàn thành |
 | **TASK-08** | Tích Hợp Toàn Diện (End-to-End) & Script Khởi Chạy 1-Click | [`task_08_e2e_integration_polish_and_run_scripts.md`](file:///d:/DACNTT-1/ĐACN/plan/task_08_e2e_integration_polish_and_run_scripts.md) | Tất cả các task | ✅ Hoàn thành |
+| **TASK-09** | Nâng Cấp Biểu Đồ Chuẩn Pro (Deep History Zoom, UX & Fullscreen) | [`task_09_pro_charting_experience_and_deep_history.md`](file:///d:/DACNTT-1/ĐACN/plan/task_09_pro_charting_experience_and_deep_history.md) | TASK-01, TASK-03 | 🔲 Chưa bắt đầu |
 
 ---
 
