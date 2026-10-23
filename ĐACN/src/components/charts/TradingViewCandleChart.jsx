@@ -7,7 +7,18 @@ import {
   LineStyle,
   createSeriesMarkers
 } from 'lightweight-charts'
-import { Maximize2, Layers, Eye, EyeOff, BarChart2, Radio } from 'lucide-react'
+import {
+  Maximize2,
+  Minimize2,
+  Layers,
+  BarChart2,
+  Radio,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
+  Sparkles,
+  Sliders
+} from 'lucide-react'
 import { formatSignalPrice } from '../../data/signalUtils.js'
 
 export function TradingViewCandleChart({
@@ -16,8 +27,11 @@ export function TradingViewCandleChart({
   activeSignal = null,
   symbol = 'BTC/USDT',
   timeframe = '5m',
-  height = 520
+  height = 540,
+  barLimit = 1000,
+  onBarLimitChange = null
 }) {
+  const wrapperRef = useRef(null)
   const containerRef = useRef(null)
   const chartRef = useRef(null)
   const candleSeriesRef = useRef(null)
@@ -29,24 +43,25 @@ export function TradingViewCandleChart({
   const [showVolume, setShowVolume] = useState(true)
   const [showSignalLines, setShowSignalLines] = useState(true)
   const [hoveredCandle, setHoveredCandle] = useState(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
 
   // Chuẩn hóa và làm sạch dữ liệu nến (bắt buộc time tăng dần, không trùng lặp)
   const sanitizedKlines = useMemo(() => {
     if (!klines || klines.length === 0) {
       // Dữ liệu mẫu chuẩn nến M5 nếu đang kết nối API
       const nowSec = Math.floor(Date.now() / 1000)
-      const count = 100
+      const count = 300
       let lastClose = 67482.35
       const mockBars = []
 
       for (let i = count; i >= 0; i--) {
         const t = nowSec - i * 300
-        const change = (Math.sin(i * 0.4) * 45) + ((Math.random() - 0.49) * 35)
+        const change = (Math.sin(i * 0.25) * 65) + ((Math.random() - 0.49) * 45)
         const open = lastClose
         const close = open + change
-        const high = Math.max(open, close) + Math.random() * 25
-        const low = Math.min(open, close) - Math.random() * 25
-        const vol = 15 + Math.random() * 50
+        const high = Math.max(open, close) + Math.random() * 30
+        const low = Math.min(open, close) - Math.random() * 30
+        const vol = 15 + Math.random() * 60
         lastClose = close
         mockBars.push({
           time: t,
@@ -76,14 +91,16 @@ export function TradingViewCandleChart({
     return Array.from(map.values()).sort((a, b) => a.time - b.time)
   }, [klines])
 
-  // Khởi tạo biểu đồ TradingView Lightweight Charts
+  // Khởi tạo biểu đồ TradingView Lightweight Charts chuẩn Pro
   useEffect(() => {
     if (!containerRef.current) return
 
     const container = containerRef.current
+    const chartHeight = isFullscreen ? window.innerHeight - 120 : height
+
     const chart = createChart(container, {
       width: container.clientWidth,
-      height: height,
+      height: chartHeight,
       layout: {
         background: { type: ColorType.Solid, color: '#0D1117' },
         textColor: '#8B949E',
@@ -109,18 +126,49 @@ export function TradingViewCandleChart({
           labelBackgroundColor: '#21262D'
         }
       },
+      // THƯỚC ĐO GIÁ: Hỗ trợ co giãn tự do theo chiều dọc
       rightPriceScale: {
         borderColor: '#21262D',
+        autoScale: true,
         scaleMargins: {
-          top: 0.1,
+          top: 0.08,
           bottom: 0.22 // Chừa không gian bên dưới cho Volume
-        }
+        },
+        entireTextOnly: false
       },
+      // THƯỚC THỜI GIAN: Hỗ trợ siêu Zoom cực xa và cực gần
       timeScale: {
         borderColor: '#21262D',
         timeVisible: true,
         secondsVisible: false,
-        rightOffset: 5
+        rightOffset: 12,        // Khoảng trống bên phải nến hiện tại chuẩn TradingView
+        barSpacing: 8,          // Độ rộng nến ban đầu tối ưu
+        minBarSpacing: 0.5,     // Cho phép zoom thu nhỏ cực đại như Binance thật!
+        maxBarSpacing: 50,      // Cho phép zoom phóng to cực đại
+        fixLeftEdge: false,     // Tự do cuộn lùi về quá khứ sâu
+        fixRightEdge: false,
+        lockVisibleTimeRangeOnResize: false,
+        shiftVisibleRangeOnNewBar: true
+      },
+      // THAO TÁC CHUỘT: Co giãn đa trục chuẩn TradingView
+      handleScale: {
+        mouseWheel: true,       // Lăn chuột phóng to/thu nhỏ mượt mà
+        pinch: true,
+        axisPressedMouseMove: {
+          time: true,           // Kéo rê thước thời gian để zoom ngang
+          price: true           // Kéo rê thước giá bên phải để nén/giãn chiều cao nến!
+        },
+        axisDoubleClickReset: {
+          time: true,           // Nhấp đúp chuột lên thước để reset
+          price: true           // Nhấp đúp chuột lên thước giá để tự động cân bằng tỷ lệ nến
+        }
+      },
+      // CUỘN BIỂU ĐỒ:
+      handleScroll: {
+        mouseWheel: false,      // Tránh bị cuộn dọc mất kiểm soát
+        pressedMouseMove: true, // Giữ chuột trái rê để kéo biểu đồ qua lại tự do
+        horzTouchDrag: true,
+        vertTouchDrag: true
       }
     })
 
@@ -170,7 +218,8 @@ export function TradingViewCandleChart({
     const resizeObserver = new ResizeObserver((entries) => {
       if (entries[0] && chartRef.current) {
         chartRef.current.applyOptions({
-          width: entries[0].contentRect.width
+          width: entries[0].contentRect.width,
+          height: isFullscreen ? window.innerHeight - 120 : height
         })
       }
     })
@@ -185,7 +234,7 @@ export function TradingViewCandleChart({
       markersRef.current = null
       priceLinesRef.current = []
     }
-  }, [height])
+  }, [height, isFullscreen])
 
   // Cập nhật dữ liệu nến & volume
   useEffect(() => {
@@ -222,7 +271,7 @@ export function TradingViewCandleChart({
       try {
         candleSeries.removePriceLine(line)
       } catch (err) {
-        // bỏ qua nếu đã giải phóng
+        // bỏ qua
       }
     })
     priceLinesRef.current = []
@@ -236,7 +285,6 @@ export function TradingViewCandleChart({
       const sigTime = sig.timestamp_unix || (sig.createdAt ? Math.floor(sig.createdAt / 1000) : null)
 
       if (sigTime) {
-        // Tìm nến gần nhất với thời gian của tín hiệu
         const matchedBar = sanitizedKlines.find((b) => Math.abs(b.time - sigTime) <= 600)
         const targetTime = matchedBar ? matchedBar.time : sanitizedKlines[sanitizedKlines.length - 1].time
 
@@ -270,7 +318,6 @@ export function TradingViewCandleChart({
       const rrRatio = activeSignal.rr_ratio || (deltaSl > 0 ? deltaTp / deltaSl : 1.5)
 
       if (entryPrice > 0) {
-        // Entry Price Line (Blue Dashed)
         const entryLine = candleSeries.createPriceLine({
           price: entryPrice,
           color: '#2962FF',
@@ -283,7 +330,6 @@ export function TradingViewCandleChart({
       }
 
       if (stopLoss > 0) {
-        // Stop Loss Line (Red Solid)
         const slLine = candleSeries.createPriceLine({
           price: stopLoss,
           color: '#F23645',
@@ -296,7 +342,6 @@ export function TradingViewCandleChart({
       }
 
       if (takeProfit > 0) {
-        // Take Profit Line (Green Solid)
         const tpLine = candleSeries.createPriceLine({
           price: takeProfit,
           color: '#089981',
@@ -328,14 +373,65 @@ export function TradingViewCandleChart({
     }
   }, [sanitizedKlines, signals, activeSignal, showSignalLines])
 
+  // Lắng nghe sự kiện Fullscreen của trình duyệt
+  useEffect(() => {
+    const handleFsChange = () => {
+      setIsFullscreen(!!document.fullscreenElement)
+    }
+    document.addEventListener('fullscreenchange', handleFsChange)
+    return () => document.removeEventListener('fullscreenchange', handleFsChange)
+  }, [])
+
+  const toggleFullscreen = () => {
+    if (!wrapperRef.current) return
+    if (!document.fullscreenElement) {
+      wrapperRef.current.requestFullscreen().catch((err) => {
+        console.warn('Lỗi mở toàn màn hình:', err)
+      })
+    } else {
+      document.exitFullscreen().catch((err) => {
+        console.warn('Lỗi thoát toàn màn hình:', err)
+      })
+    }
+  }
+
+  // Zoom Helpers
+  const handleZoomIn = () => {
+    if (!chartRef.current) return
+    const ts = chartRef.current.timeScale()
+    const current = ts.options().barSpacing || 8
+    ts.applyOptions({ barSpacing: Math.min(50, current * 1.35) })
+  }
+
+  const handleZoomOut = () => {
+    if (!chartRef.current) return
+    const ts = chartRef.current.timeScale()
+    const current = ts.options().barSpacing || 8
+    ts.applyOptions({ barSpacing: Math.max(0.5, current * 0.75) })
+  }
+
+  const handleResetView = () => {
+    if (!chartRef.current) return
+    chartRef.current.timeScale().fitContent()
+    chartRef.current.priceScale('right').applyOptions({ autoScale: true })
+  }
+
   const lastBar = sanitizedKlines[sanitizedKlines.length - 1]
   const displayCandle = hoveredCandle || lastBar
+  const deltaPrice = displayCandle ? displayCandle.close - displayCandle.open : 0
+  const deltaPct = displayCandle && displayCandle.open ? (deltaPrice / displayCandle.open) * 100 : 0
+  const isUp = deltaPrice >= 0
 
   return (
-    <div className="relative w-full bg-[#0D1117] border border-[#21262D] rounded-2xl overflow-hidden shadow-2xl">
+    <div
+      ref={wrapperRef}
+      className={`relative w-full bg-[#0D1117] border border-[#21262D] rounded-2xl overflow-hidden shadow-2xl transition-all ${
+        isFullscreen ? 'p-4 rounded-none h-screen flex flex-col justify-between' : ''
+      }`}
+    >
       {/* Top Chart Header Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-[#161B22] border-b border-[#21262D]">
-        {/* Pair & Live Feed Badge */}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-[#161B22] border-b border-[#21262D]">
+        {/* Left: Pair, Timeframe, Live Feed Badge */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <span className="font-bold text-white text-base tracking-wide font-mono">
@@ -348,13 +444,33 @@ export function TradingViewCandleChart({
 
           <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
             <Radio size={12} className="animate-pulse" />
-            <span>BINANCE M5 LIVE</span>
+            <span>BINANCE FEED</span>
           </div>
+
+          {/* Depth Range Presets Selector */}
+          {onBarLimitChange && (
+            <div className="hidden sm:flex items-center bg-[#0D1117] p-0.5 rounded-lg border border-[#30363D] text-[11px] font-mono">
+              {[150, 500, 1000, 1500].map((count) => (
+                <button
+                  key={count}
+                  onClick={() => onBarLimitChange(count)}
+                  className={`px-2 py-0.5 rounded transition-colors ${
+                    barLimit === count
+                      ? 'bg-blue-600 text-white font-bold'
+                      : 'text-[#8B949E] hover:text-white'
+                  }`}
+                  title={`Tải ${count} nến lịch sử`}
+                >
+                  {count}B
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* OHLC Stats Header Display */}
+        {/* Center: TradingView-style Floating HUD (OHLC & % change) */}
         {displayCandle && (
-          <div className="hidden md:flex items-center gap-3 font-mono text-xs text-[#8B949E]">
+          <div className="flex flex-wrap items-center gap-3 font-mono text-xs text-[#8B949E]">
             <span>
               O: <b className="text-white">${formatSignalPrice(displayCandle.open)}</b>
             </span>
@@ -366,24 +482,52 @@ export function TradingViewCandleChart({
             </span>
             <span>
               C:{' '}
-              <b
-                className={
-                  displayCandle.close >= displayCandle.open ? 'text-[#089981]' : 'text-[#F23645]'
-                }
-              >
+              <b className={isUp ? 'text-[#089981]' : 'text-[#F23645]'}>
                 ${formatSignalPrice(displayCandle.close)}
               </b>
             </span>
+            <span className={`font-semibold ${isUp ? 'text-[#089981]' : 'text-[#F23645]'}`}>
+              {isUp ? '+' : ''}${formatSignalPrice(deltaPrice)} ({isUp ? '+' : ''}{deltaPct.toFixed(2)}%)
+            </span>
             {displayCandle.volume > 0 && (
-              <span>
-                Vol: <b className="text-cyan-300">{displayCandle.volume.toFixed(2)} BTC</b>
+              <span className="hidden lg:inline text-cyan-300">
+                Vol: <b>{displayCandle.volume.toFixed(2)} BTC</b>
               </span>
             )}
           </div>
         )}
 
-        {/* Tool Action Buttons */}
+        {/* Right: Zoom In/Out, Fit, SL/TP, Fullscreen Controls */}
         <div className="flex items-center gap-1.5">
+          {/* Zoom Out (-) */}
+          <button
+            onClick={handleZoomOut}
+            className="p-1.5 px-2 bg-[#0D1117] hover:bg-[#21262D] text-[#8B949E] hover:text-white border border-[#30363D] rounded-lg text-xs font-semibold flex items-center transition-colors"
+            title="Thu nhỏ biểu đồ (Zoom Out)"
+          >
+            <ZoomOut size={13} />
+          </button>
+
+          {/* Zoom In (+) */}
+          <button
+            onClick={handleZoomIn}
+            className="p-1.5 px-2 bg-[#0D1117] hover:bg-[#21262D] text-[#8B949E] hover:text-white border border-[#30363D] rounded-lg text-xs font-semibold flex items-center transition-colors"
+            title="Phóng to biểu đồ (Zoom In)"
+          >
+            <ZoomIn size={13} />
+          </button>
+
+          {/* Reset View */}
+          <button
+            onClick={handleResetView}
+            className="p-1.5 px-2 bg-[#0D1117] hover:bg-[#21262D] text-[#8B949E] hover:text-white border border-[#30363D] rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
+            title="Căn chỉnh vừa vặn & Reset tỷ lệ nến"
+          >
+            <RotateCcw size={13} />
+            <span className="hidden sm:inline">Fit</span>
+          </button>
+
+          {/* Toggle Volume */}
           <button
             onClick={() => setShowVolume((prev) => !prev)}
             className={`p-1.5 px-2 rounded-lg text-xs font-semibold flex items-center gap-1 border transition-colors ${
@@ -394,9 +538,10 @@ export function TradingViewCandleChart({
             title="Bật/Tắt Volume Sub-series"
           >
             <BarChart2 size={13} />
-            <span className="hidden sm:inline">Volume</span>
+            <span className="hidden md:inline">Vol</span>
           </button>
 
+          {/* Toggle SL/TP lines */}
           <button
             onClick={() => setShowSignalLines((prev) => !prev)}
             className={`p-1.5 px-2 rounded-lg text-xs font-semibold flex items-center gap-1 border transition-colors ${
@@ -407,49 +552,63 @@ export function TradingViewCandleChart({
             title="Bật/Tắt đường dóng Entry / SL / TP"
           >
             <Layers size={13} />
-            <span className="hidden sm:inline">SL/TP Lines</span>
+            <span className="hidden md:inline">Lines</span>
           </button>
 
+          {/* Fullscreen Button */}
           <button
-            onClick={() => chartRef.current?.timeScale().fitContent()}
-            className="p-1.5 px-2 bg-[#0D1117] hover:bg-[#21262D] text-[#8B949E] hover:text-white border border-[#30363D] rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
-            title="Thu phóng vừa vặn toàn bộ nến"
+            onClick={toggleFullscreen}
+            className={`p-1.5 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 border transition-colors ${
+              isFullscreen
+                ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40'
+                : 'bg-gradient-to-r from-blue-600/20 to-cyan-600/20 hover:from-blue-600/30 hover:to-cyan-600/30 text-cyan-300 border-cyan-500/40'
+            }`}
+            title={isFullscreen ? 'Thu nhỏ cửa sổ' : 'Mở toàn màn hình (Fullscreen Terminal)'}
           >
-            <Maximize2 size={13} />
-            <span className="hidden sm:inline">Fit</span>
+            {isFullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+            <span className="hidden sm:inline">
+              {isFullscreen ? 'Thu nhỏ' : 'Toàn màn hình'}
+            </span>
           </button>
         </div>
       </div>
 
-      {/* Lightweight Chart Container */}
-      <div ref={containerRef} className="w-full relative" />
+      {/* Lightweight Chart Canvas Container */}
+      <div
+        ref={containerRef}
+        className={`w-full relative ${isFullscreen ? 'flex-1 my-2' : ''}`}
+        style={isFullscreen ? {} : { height: `${height}px` }}
+      />
 
-      {/* Chart Footer Indicator Legend */}
-      <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 px-4 bg-[#161B22]/90 border-t border-[#21262D] text-[11px] text-[#8B949E]">
-        <div className="flex items-center gap-4">
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-sm bg-[#089981]" /> Nến tăng
+      {/* Pro Chart Footer Legend & User Guide */}
+      <div className="flex flex-wrap items-center justify-between gap-2 p-2 px-4 bg-[#161B22]/95 border-t border-[#21262D] text-[11px] text-[#8B949E]">
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-[#089981]" /> Nến tăng
           </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-sm bg-[#F23645]" /> Nến giảm
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-[#F23645]" /> Nến giảm
           </span>
           {showSignalLines && (
             <>
-              <span className="flex items-center gap-1.5 text-blue-400">
-                <span className="w-3 h-0.5 border-b-2 border-dashed border-[#2962FF]" /> Entry
+              <span className="flex items-center gap-1 text-blue-400">
+                <span className="w-2.5 h-0.5 border-b-2 border-dashed border-[#2962FF]" /> Entry
               </span>
-              <span className="flex items-center gap-1.5 text-[#F23645]">
-                <span className="w-3 h-0.5 bg-[#F23645]" /> Stop Loss
+              <span className="flex items-center gap-1 text-[#F23645]">
+                <span className="w-2.5 h-0.5 bg-[#F23645]" /> SL
               </span>
-              <span className="flex items-center gap-1.5 text-[#089981]">
-                <span className="w-3 h-0.5 bg-[#089981]" /> Take Profit
+              <span className="flex items-center gap-1 text-[#089981]">
+                <span className="w-2.5 h-0.5 bg-[#089981]" /> TP
               </span>
             </>
           )}
         </div>
 
-        <div className="font-mono text-[10px]">
-          TradingView Lightweight Charts v5 · M5 Binance Feed
+        <div className="flex items-center gap-3 font-mono text-[10px]">
+          <span className="text-cyan-400/80 hidden md:inline">
+            💡 Mẹo Pro: Kéo chuột trên thước đo giá bên phải để nén/giãn nến · Nhấp đúp để reset
+          </span>
+          <span>Đang hiển thị {sanitizedKlines.length} nến M5</span>
         </div>
       </div>
     </div>

@@ -163,15 +163,35 @@ def get_health():
 @app.get("/api/market/klines", response_model=KlinesResponse)
 def get_klines(
     symbol: str = Query("BTCUSDT", description="Cặp giao dịch"),
-    limit: int = Query(150, ge=10, le=500, description="Số lượng nến")
+    limit: int = Query(500, ge=10, le=2000, description="Số lượng nến")
 ):
-    """Lấy dữ liệu nến M5 từ Binance định dạng tương thích với TradingView Charts."""
+    """
+    Lấy dữ liệu nến M5 từ Binance hoặc kho lưu trữ Parquet (độ sâu lên đến 2,000 nến).
+    Tương thích tuyệt đối với TradingView Lightweight Charts.
+    """
     try:
-        df = state.binance_loader.fetch_recent_bars(
-            symbol=symbol,
-            interval=state.config.binance.interval,
-            count=limit
-        )
+        df = None
+        # Nếu yêu cầu <= 1000 nến, ưu tiên nến live mới nhất từ Binance API
+        if limit <= 1000:
+            try:
+                df = state.binance_loader.fetch_recent_bars(
+                    symbol=symbol,
+                    interval=state.config.binance.interval,
+                    count=limit
+                )
+            except Exception as e:
+                logger.warning(f"Lấy nến trực tiếp từ Binance thất bại: {e}. Đang nạp kho Parquet dự phòng...")
+
+        # Nếu chưa có dữ liệu hoặc yêu cầu độ sâu lớn > 1000 nến, nạp từ Parquet lưu trữ 17,280 nến
+        if df is None or len(df) < limit:
+            parquet_path = Path(__file__).resolve().parent.parent.parent / "data" / "raw" / "btcusdt_m5.parquet"
+            if parquet_path.exists():
+                local_df = load_from_parquet(parquet_path)
+                if not local_df.empty:
+                    df = local_df.iloc[-limit:].copy()
+
+        if df is None or df.empty:
+            raise ValueError(f"Không thể nạp dữ liệu nến cho {symbol}")
 
         records = []
         for _, row in df.iterrows():

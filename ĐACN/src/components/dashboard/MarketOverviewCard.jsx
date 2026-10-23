@@ -7,7 +7,7 @@ import { formatSignalPrice } from '../../data/signalUtils.js'
 
 export function MarketOverviewCard({ onNavigate }) {
   const market = ASSETS.btc || { label: 'Bitcoin (Binance)', symbol: 'BTC / USDT', price: 67482.35, change: 1.85 }
-  const { klines } = useMarketData('BTCUSDT', 80)
+  const { klines } = useMarketData('BTCUSDT', 300)
   const { latestSignal, signalsHistory } = useSignals(8000)
 
   const lastBar = klines && klines.length > 0 ? klines[klines.length - 1] : null

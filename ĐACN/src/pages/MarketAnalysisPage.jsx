@@ -13,9 +13,10 @@ import { buildMarketCandles, calculateMarketIndicators } from '../data/marketAna
 export function MarketAnalysisPage() {
   const [pair, setPair] = useState('BTC/USDT')
   const [timeframe, setTimeframe] = useState('5m')
+  const [barLimit, setBarLimit] = useState(1000)
 
   // Real data hooks
-  const { klines, volumeRegime, loading: marketLoading, refresh: refreshMarket } = useMarketData('BTCUSDT', 150)
+  const { klines, volumeRegime, loading: marketLoading, refresh: refreshMarket } = useMarketData('BTCUSDT', barLimit)
   const { latestSignal, signalsHistory, refresh: refreshSignals } = useSignals(5000)
 
   const market = MARKET_PAIRS[pair] || MARKET_PAIRS['BTC/USDT']
@@ -81,14 +82,16 @@ export function MarketAnalysisPage() {
       {/* Main Analysis Workspace */}
       <section className="analysis-workspace">
         <article className="panel market-chart-panel">
-          {/* TradingView Realtime Candle Chart (TASK-03) */}
+          {/* TradingView Realtime Candle Chart (TASK-03 & TASK-09) */}
           <TradingViewCandleChart
             klines={klines}
             signals={signalsHistory}
             activeSignal={latestSignal}
             symbol={pair}
             timeframe={timeframe}
-            height={520}
+            height={560}
+            barLimit={barLimit}
+            onBarLimitChange={setBarLimit}
           />
         </article>
 
