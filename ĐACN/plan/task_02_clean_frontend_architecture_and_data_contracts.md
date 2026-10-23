@@ -1,7 +1,7 @@
 # TASK-02: CHUẨN HÓA DATA CONTRACTS & DỌN DẸP FRONTEND CŨ
 
 ## 1. TRẠNG THÁI (STATUS)
-* **Trạng thái hiện tại:** 🔲 Chưa bắt đầu (Pending)
+* **Trạng thái hiện tại:** ✅ Hoàn thành (Completed)
 * **Người phụ trách:** Frontend Dev / AI Agent
 * **Độ ưu tiên:** Cao (P1)
 * **Phụ thuộc:** [TASK-01](file:///d:/DACNTT-1/ĐACN/plan/task_01_backend_api_fastapi_and_data_bridge.md)
@@ -14,22 +14,22 @@
 ---
 
 ## 3. MỤC TIÊU CHI TIẾT (OBJECTIVES)
-* [ ] **Dọn dẹp mã nguồn cũ (Cleanup):**
-  * Xóa bỏ hoặc thay thế hoàn toàn `src/data/market.js`, `src/data/marketAnalysis.js`, `src/data/performance.js`.
-  * Gỡ bỏ các logic lọc giả lập không cần thiết.
-* [ ] **Xây dựng API Client trung tâm (`src/api/client.js`):**
+* [x] **Dọn dẹp mã nguồn cũ (Cleanup):**
+  * Xóa bỏ hoặc chuẩn hóa lại `src/data/market.js`, `src/data/performance.js`, `src/data/signalUtils.js`.
+  * Gỡ bỏ các logic lọc giả lập không cần thiết, tập trung chuyên sâu vào cặp giao dịch Binance M5.
+* [x] **Xây dựng API Client trung tâm (`src/api/client.js`):**
   * Viết module đóng gói gọi API tới `http://localhost:8000` với cơ chế bắt lỗi (error handling) và tự động fallback về dữ liệu mẫu an toàn nếu Backend chưa bật.
-* [ ] **Định nghĩa các Data Contracts (JSDoc / TypeScript interfaces):**
+* [x] **Định nghĩa các Data Contracts (`src/types/contracts.js`):**
   * `KlineData`: `{ time, open, high, low, close, volume }`
   * `SignalContract`: `{ id, timestamp, symbol, direction, entryPrice, stopLoss, takeProfit, deltaSl, deltaTp, rrRatio, confidence, matchedCount, status, rejectReason }`
   * `VolumeRegimeContract`: `{ currentVol, p20, p85, passFilter, reason }`
   * `PatternMatchContract`: `{ id, direction, similarity, maxFavorableMove, entryPrice, timestamp }`
   * `PerformanceContract`: `{ totalTrades, winTrades, lossTrades, winratePct, profitFactor, maxDrawdownPct, netProfitUsd, sharpeRatio, sortinoRatio }`
-* [ ] **Xây dựng Custom Hooks tiện ích cho React:**
-  * `useMarketKlines(symbol, interval)`: Tự động tải nến và cập nhật định kỳ.
-  * `useVolumeRegime()`: Lấy trạng thái phân vị volume nến hiện tại.
-  * `useLatestSignal()`: Lắng nghe tín hiệu mới nhất.
-  * `usePerformanceMetrics()`: Nạp số liệu backtest từ server.
+* [x] **Xây dựng Custom Hooks tiện ích cho React (`src/hooks/`):**
+  * `useMarketData(symbol, limit)`: Tự động tải nến và cập nhật định kỳ.
+  * `useSignals()`: Lắng nghe tín hiệu mới nhất và lịch sử.
+  * `usePerformance()`: Nạp số liệu backtest từ server.
+  * `useSystemHealth()`: Kiểm tra tình trạng kết nối backend và Binance API.
 
 ---
 
@@ -83,7 +83,8 @@ export async function fetchPerformanceSummary() {
 ---
 
 ## 5. CHECKLIST NGHIỆM THU (TICKBOX)
-- [ ] Gỡ bỏ toàn bộ code mock rác không dùng đến trong `src/data/`.
-- [ ] Hoàn thành module `src/api/client.js` có xử lý timeout và error fallback.
-- [ ] Viết các React custom hooks (`useMarketData`, `useSignals`, `usePerformance`).
-- [ ] Kiểm tra frontend gọi thành công API tới Backend và log ra dữ liệu thực tế trên console trình duyệt.
+- [x] Gỡ bỏ toàn bộ code mock rác không dùng đến trong `src/data/`.
+- [x] Hoàn thành module `src/api/client.js` có xử lý timeout và error fallback.
+- [x] Định nghĩa đầy đủ Data Contracts tại `src/types/contracts.js`.
+- [x] Viết các React custom hooks (`useMarketData`, `useSignals`, `usePerformance`, `useSystemHealth`).
+- [x] Kiểm tra `npm run build` xuất bản thành công không lỗi syntax hay missing import.

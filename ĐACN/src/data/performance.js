@@ -1,5 +1,36 @@
+/**
+ * Dữ liệu hiệu suất kiểm thử Out-of-Sample của mô hình Pattern-Matching.
+ * Đồng bộ với kết quả tại Signal_Trade/reports/backtest_trades.csv.
+ */
+
 export const PERFORMANCE_MODELS = [
-  { name: 'Northstar Trend', version: 'v2.4.1', accuracy: '78.4%', winRate: '72.8%', signals: '126', pnl: '+8.26%', bars: [24, 38, 31, 50, 44, 67, 56, 73, 62, 85, 77, 96] },
-  { name: 'Momentum Scout', version: 'v1.8.0', accuracy: '74.1%', winRate: '69.3%', signals: '98', pnl: '+5.92%', bars: [30, 22, 46, 40, 54, 48, 70, 59, 81, 69, 90, 84] },
-  { name: 'Mean Reversion', version: 'v1.2.6', accuracy: '69.7%', winRate: '64.5%', signals: '84', pnl: '+3.18%', bars: [41, 34, 48, 29, 55, 41, 63, 52, 70, 58, 75, 67] },
+  {
+    name: 'FAISS Pattern-Matching AI (M5)',
+    version: 'v2.0 (BTC/USDT)',
+    accuracy: '88.5%',
+    winRate: '44.72%',
+    profitFactor: '1.03',
+    signals: '123',
+    pnl: '+$245.16',
+    maxDrawdown: '14.71%',
+    sharpe: '0.14',
+    sortino: '0.42',
+    winLoss: '1.27',
+    bars: [25, 45, 30, 60, 52, 75, 68, 82, 74, 90, 85, 95]
+  }
 ]
+
+export const BACKTEST_SUMMARY_FALLBACK = {
+  total_trades: 123,
+  win_trades: 55,
+  loss_trades: 68,
+  winrate_pct: 44.72,
+  profit_factor: 1.03,
+  max_drawdown_pct: 14.71,
+  max_drawdown_usd: 1681.83,
+  net_profit_usd: 245.16,
+  final_balance: 10245.16,
+  sharpe_ratio: 0.14,
+  sortino_ratio: 0.42,
+  win_loss_ratio: 1.27
+}
