@@ -3,6 +3,7 @@ import cors from 'cors'
 import mongoose from 'mongoose'
 import authRoutes from './routes/authRoutes.js'
 import signalRoutes from './routes/signalRoutes.js'
+import { linkTelegram } from './controllers/userController.js'
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js'
 
 const app = express()
@@ -35,6 +36,8 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/signals', signalRoutes)
 app.use('/api/auth', authRoutes)
+app.post('/api/link-telegram', linkTelegram)
+app.post('/api/users/link-telegram', linkTelegram)
 app.use(notFoundHandler)
 app.use(errorHandler)
 

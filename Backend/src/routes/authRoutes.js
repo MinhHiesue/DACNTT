@@ -1,5 +1,6 @@
 import { Router } from 'express'
-import { getCurrentUser, login, register, linkTelegram } from '../controllers/authController.js'
+import { getCurrentUser, login, register } from '../controllers/authController.js'
+import { linkTelegram } from '../controllers/userController.js'
 import { requireAuth } from '../middleware/requireAuth.js'
 
 const router = Router()
