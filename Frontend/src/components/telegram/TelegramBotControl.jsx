@@ -1,10 +1,15 @@
 import { useState } from 'react'
 import { Send, CheckCircle2, AlertTriangle, RefreshCw, MessageSquare, ShieldCheck, Sparkles, Image as ImageIcon } from 'lucide-react'
 import { sendTelegramTestAlert } from '../../api/client.js'
+import { TelegramConfigForm } from './TelegramConfigForm.jsx'
 
-export function TelegramBotControl({ onLogEvent }) {
+// Nhận prop userId từ TelegramPage
+export function TelegramBotControl({ onLogEvent, userId }) {
   const [sending, setSending] = useState(false)
   const [result, setResult] = useState(null)
+  
+  // State quản lý trạng thái bật/tắt bot
+  const [connected, setConnected] = useState(false)
 
   const handleSendTest = async () => {
     setSending(true)
@@ -106,36 +111,46 @@ export function TelegramBotControl({ onLogEvent }) {
 
       {/* Configuration & Preview Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mt-4">
-        {/* Left Col: Bot Parameters (5 cols) */}
-        <div className="lg:col-span-5 p-4 bg-[#161B22] border border-[#21262D] rounded-xl flex flex-col justify-between">
-          <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[#8B949E] block mb-3">
-              THÔNG SỐ KẾT NỐI BOT
-            </span>
+        {/* Left Col: Bot Parameters & Connection Form (5 cols) */}
+        <div className="lg:col-span-5 flex flex-col gap-4">
+          
+          {/* Form Kết Nối Mới Tích Hợp */}
+          <TelegramConfigForm 
+            connected={connected}
+            onConnectionChange={setConnected}
+            userId={userId} 
+          />
 
-            <div className="space-y-3 text-xs">
-              <div className="flex items-center justify-between pb-2 border-b border-[#21262D]">
-                <span className="text-[#8B949E]">Bot Username:</span>
-                <span className="font-mono text-cyan-300 font-bold">@NorthstarPatternBot</span>
-              </div>
-              <div className="flex items-center justify-between pb-2 border-b border-[#21262D]">
-                <span className="text-[#8B949E]">Chat ID nhận tin:</span>
-                <span className="font-mono text-white">-100******4890</span>
-              </div>
-              <div className="flex items-center justify-between pb-2 border-b border-[#21262D]">
-                <span className="text-[#8B949E]">Định dạng cảnh báo:</span>
-                <span className="text-white font-semibold">HTML Message + PNG Snapshot</span>
-              </div>
-              <div className="flex items-center justify-between pb-2 border-b border-[#21262D]">
-                <span className="text-[#8B949E]">Điều kiện gửi:</span>
-                <span className="text-[#089981] font-semibold">Chỉ gửi lệnh APPROVED</span>
+          <div className="p-4 bg-[#161B22] border border-[#21262D] rounded-xl flex flex-col justify-between">
+            <div>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#8B949E] block mb-3">
+                THÔNG SỐ KẾT NỐI BOT
+              </span>
+
+              <div className="space-y-3 text-xs">
+                <div className="flex items-center justify-between pb-2 border-b border-[#21262D]">
+                  <span className="text-[#8B949E]">Bot Username:</span>
+                  <span className="font-mono text-cyan-300 font-bold">@NorthstarPatternBot</span>
+                </div>
+                <div className="flex items-center justify-between pb-2 border-b border-[#21262D]">
+                  <span className="text-[#8B949E]">Chat ID nhận tin:</span>
+                  <span className="font-mono text-white">-100******4890</span>
+                </div>
+                <div className="flex items-center justify-between pb-2 border-b border-[#21262D]">
+                  <span className="text-[#8B949E]">Định dạng cảnh báo:</span>
+                  <span className="text-white font-semibold">HTML Message + PNG Snapshot</span>
+                </div>
+                <div className="flex items-center justify-between pb-2 border-b border-[#21262D]">
+                  <span className="text-[#8B949E]">Điều kiện gửi:</span>
+                  <span className="text-[#089981] font-semibold">Chỉ gửi lệnh APPROVED</span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="mt-4 pt-3 border-t border-[#21262D] text-[11px] text-[#8B949E] flex items-center gap-1.5">
-            <ShieldCheck size={13} className="text-emerald-400 shrink-0" />
-            <span>Token được bảo vệ trong biến môi trường .env phía Backend.</span>
+            <div className="mt-4 pt-3 border-t border-[#21262D] text-[11px] text-[#8B949E] flex items-center gap-1.5">
+              <ShieldCheck size={13} className="text-emerald-400 shrink-0" />
+              <span>Token được bảo vệ trong biến môi trường .env phía Backend.</span>
+            </div>
           </div>
         </div>
 
@@ -159,11 +174,11 @@ export function TelegramBotControl({ onLogEvent }) {
             </div>
 
             <div className="space-y-0.5 text-xs font-mono my-2 text-[#d1d5db]">
-              <div>• <b>Entry:</b> $67,482.35 (Đóng nến M5)</div>
-              <div>• <b>Stop Loss:</b> $67,062.35 (-$420.00 USD)</div>
-              <div>• <b>Take Profit:</b> $68,112.35 (+$630.00 USD)</div>
-              <div>• <b>Tỷ lệ Reward/Risk:</b> 1.50</div>
-              <div>• <b>Rủi ro đề xuất:</b> 1.0% Vốn ($100 USD)</div>
+              <div><b>Entry:</b> $67,482.35 (Đóng nến M5)</div>
+              <div><b>Stop Loss:</b> $67,062.35 (-$420.00 USD)</div>
+              <div><b>Take Profit:</b> $68,112.35 (+$630.00 USD)</div>
+              <div><b>Tỷ lệ Reward/Risk:</b> 1.50</div>
+              <div><b>Rủi ro đề xuất:</b> 1.0% Vốn ($100 USD)</div>
             </div>
 
             <div className="pt-1.5 border-t border-[#242f3d] text-[11px] text-[#8B949E]">

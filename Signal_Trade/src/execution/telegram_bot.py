@@ -1,6 +1,6 @@
-"""Module 5 (Execution / Alerting): Gửi cảnh báo tín hiệu qua Telegram Bot."""
+"""Module 5 (Execution / Alerting): Gửi cảnh báo tín hiệu qua Telegram Bot cho nhiều người dùng."""
 import time
-from typing import Optional
+from typing import Optional, List
 import requests
 import pandas as pd
 from loguru import logger
@@ -13,11 +13,11 @@ from src.execution.chart_plotter import generate_signal_chart_image
 class TelegramNotifier:
     """
     Quản lý việc gửi tin nhắn và hình ảnh biểu đồ snapshot qua Telegram Bot API.
+    Hỗ trợ broadcast hàng loạt cho danh sách người dùng.
     """
 
     def __init__(self, credentials: Optional[TelegramCredentials] = None):
         self.bot_token = credentials.bot_token if credentials else None
-        self.chat_id = credentials.chat_id if credentials else None
         self.base_url = f"https://api.telegram.org/bot{self.bot_token}" if self.bot_token else None
 
     @staticmethod
@@ -46,15 +46,11 @@ class TelegramNotifier:
         )
         return msg
 
-    def send_message(self, text: str) -> bool:
-        """Gửi tin nhắn văn bản thông thường qua Telegram."""
-        if not self.bot_token or not self.chat_id:
-            logger.warning("Telegram Bot Token hoặc Chat ID chưa được cấu hình. Bỏ qua gửi tin nhắn.")
-            return False
-
+    def send_message_to_user(self, text: str, chat_id: str) -> bool:
+        """Gửi tin nhắn văn bản thông thường qua Telegram cho một user cụ thể."""
         url = f"{self.base_url}/sendMessage"
         payload = {
-            "chat_id": self.chat_id,
+            "chat_id": chat_id,
             "text": text,
             "parse_mode": "HTML",
             "disable_web_page_preview": True
@@ -63,45 +59,62 @@ class TelegramNotifier:
         try:
             resp = requests.post(url, json=payload, timeout=10)
             if resp.status_code == 200:
-                logger.info("Đã gửi tin nhắn Telegram thành công.")
                 return True
             else:
-                logger.error(f"Gửi tin nhắn Telegram thất bại: {resp.status_code} - {resp.text}")
+                logger.error(f"Gửi tin nhắn thất bại tới {chat_id}: {resp.status_code} - {resp.text}")
                 return False
         except Exception as e:
-            logger.error(f"Lỗi kết nối khi gửi Telegram: {e}")
+            logger.error(f"Lỗi kết nối khi gửi Telegram tới {chat_id}: {e}")
             return False
 
-    def send_signal_alert(self, signal: TradeSignal, setup_bars: Optional[pd.DataFrame] = None) -> bool:
+    def send_signal_alert(self, signal: TradeSignal, chat_ids: List[str], setup_bars: Optional[pd.DataFrame] = None) -> bool:
         """
-        Gửi cảnh báo tín hiệu giao dịch hoàn chỉnh kèm ảnh biểu đồ snapshot (nếu có).
+        Gửi cảnh báo tín hiệu giao dịch kèm ảnh biểu đồ snapshot cho danh sách người dùng.
         """
+        if not self.bot_token or not chat_ids:
+            logger.warning("Telegram Bot Token chưa cấu hình hoặc danh sách chat_ids rỗng.")
+            return False
+
         caption = self.format_signal_message(signal)
-
-        if not self.bot_token or not self.chat_id:
-            logger.info(f"\n--- [MÔ PHỎNG CẢNH BÁO TELEGRAM] ---\n{caption}\n-----------------------------------")
-            return False
-
-        # Nếu có setup_bars, tạo ảnh và gửi sendPhoto
+        
+        # Tạo buffer ảnh 1 lần duy nhất để tiết kiệm tài nguyên hệ thống
+        chart_buf = None
         if setup_bars is not None and not setup_bars.empty:
             chart_buf = generate_signal_chart_image(signal, setup_bars)
+
+        success_count = 0
+        url = f"{self.base_url}/sendPhoto"
+
+        for chat_id in chat_ids:
+            sent_with_photo = False
+            
+            # Ưu tiên gửi kèm ảnh nếu có
             if chart_buf is not None:
-                url = f"{self.base_url}/sendPhoto"
+                chart_buf.seek(0)  # CỰC KỲ QUAN TRỌNG: Đặt lại con trỏ file về đầu trước mỗi lần gửi
                 files = {"photo": ("chart.png", chart_buf, "image/png")}
                 data = {
-                    "chat_id": self.chat_id,
+                    "chat_id": chat_id,
                     "caption": caption,
                     "parse_mode": "HTML"
                 }
+                
                 try:
                     resp = requests.post(url, data=data, files=files, timeout=15)
                     if resp.status_code == 200:
-                        logger.success("Đã gửi cảnh báo kèm biểu đồ snapshot qua Telegram thành công!")
-                        return True
+                        sent_with_photo = True
+                        success_count += 1
                     else:
-                        logger.warning(f"sendPhoto thất bại ({resp.status_code}), chuyển sang gửi sendMessage fallback...")
+                        logger.warning(f"sendPhoto thất bại cho {chat_id} ({resp.status_code}), chuyển qua sendMessage...")
                 except Exception as e:
-                    logger.error(f"Lỗi khi gửi ảnh qua Telegram: {e}")
+                    logger.error(f"Lỗi khi gửi ảnh tới {chat_id}: {e}")
 
-        # Fallback gửi tin nhắn chữ
-        return self.send_message(caption)
+            # Fallback: Nếu không có ảnh hoặc gửi ảnh thất bại, gửi tin nhắn chữ
+            if not sent_with_photo:
+                if self.send_message_to_user(caption, chat_id):
+                    success_count += 1
+            
+            # Tránh vi phạm giới hạn tốc độ của Telegram API (khoảng 30 tin/giây)
+            time.sleep(0.05)
+
+        logger.success(f"Đã broadcast tín hiệu tới {success_count}/{len(chat_ids)} người dùng thành công!")
+        return success_count > 0

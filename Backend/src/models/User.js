@@ -23,6 +23,15 @@ const userSchema = new mongoose.Schema({
     required: true,
     select: false,
   },
+  // Các trường phục vụ liên kết Telegram
+  telegramChatId: {
+    type: String,
+    default: null,
+  },
+  telegramIsActive: {
+    type: Boolean,
+    default: false,
+  }
 }, {
   timestamps: true,
 })

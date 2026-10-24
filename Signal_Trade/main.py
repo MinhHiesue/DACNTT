@@ -33,14 +33,18 @@ from src.execution.telegram_bot import TelegramNotifier
 from src.execution.binance_listener import BinanceBarListener
 from src.data.binance_loader import BinanceDataLoader
 
+# Tích hợp module Database
+from src.data.user_db import UserDatabaseManager
+
 
 def start_heartbeat_service(
     telegram_bot: TelegramNotifier,
+    db_manager: UserDatabaseManager,
     binance_loader: BinanceDataLoader,
     symbol: str,
     interval_hours: float = 4.0
 ):
-    """Tiến trình ngầm gửi thông báo trạng thái bot (Heartbeat) định kỳ."""
+    """Tiến trình ngầm gửi thông báo trạng thái bot (Heartbeat) định kỳ tới tất cả người dùng."""
     def heartbeat_worker():
         start_time = time.time()
         while True:
@@ -56,7 +60,11 @@ def start_heartbeat_service(
                 f"• <b>Uptime:</b> {uptime_hours:.1f} giờ\n"
                 f"• <i>Hệ thống quét mẫu hình đang giám sát thị trường liên tục.</i>"
             )
-            telegram_bot.send_message(msg)
+            
+            # Broadcast heartbeat
+            active_chat_ids = db_manager.get_active_telegram_chat_ids()
+            for chat_id in active_chat_ids:
+                telegram_bot.send_message_to_user(msg, chat_id)
 
     thread = threading.Thread(target=heartbeat_worker, daemon=True)
     thread.start()
@@ -72,11 +80,13 @@ def run_bot(mode: str = "signal"):
     logger.info("=====================================================")
     logger.info(f"🤖 KHỞI ĐỘNG BINANCE PATTERN SIGNAL BOT ({symbol} {interval.upper()})")
     logger.info("• Chế độ hoạt động : [SIGNAL-ONLY / PHÁT TÍN HIỆU CẢNH BÁO]")
-    logger.info("• Nguồn dữ liệu     : Binance Public REST & WebSocket")
+    logger.info("• Nguồn dữ liệu    : Binance Public REST & WebSocket")
     logger.info("• Giao dịch thật/demo: TẮT (100% không can thiệp đặt lệnh)")
     logger.info("=====================================================")
 
-    # 1. Khởi tạo các module tính toán
+    # 1. Khởi tạo các module tính toán và kết nối
+    db_manager = UserDatabaseManager()
+    
     volume_filter = VolumeRegimeFilter(
         window_size=config.volume_filter.window_size,
         lower_percentile=config.volume_filter.lower_percentile,
@@ -116,17 +126,20 @@ def run_bot(mode: str = "signal"):
     else:
         logger.success("Kết nối Binance API thành công!")
 
-    # 3. Gửi thông báo khởi động qua Telegram
-    telegram_bot.send_message(
+    # 3. Gửi thông báo khởi động qua Telegram cho tất cả users
+    startup_msg = (
         f"🚀 <b>Binance Pattern Signal Bot đã sẵn sàng!</b>\n"
         f"• Cặp giao dịch: <code>{symbol} {interval.upper()}</code>\n"
         f"• Số mẫu hình ký ức: <b>{len(similarity_engine.vectors):,}</b> mẫu\n"
         f"• Ngưỡng tương đồng: <b>{config.similarity_engine.min_similarity*100:.0f}%</b>\n"
         f"• Chế độ: <b>Bắn tín hiệu tự động</b>"
     )
+    active_ids_startup = db_manager.get_active_telegram_chat_ids()
+    for cid in active_ids_startup:
+        telegram_bot.send_message_to_user(startup_msg, cid)
 
     # 4. Kích hoạt dịch vụ Heartbeat 4h
-    start_heartbeat_service(telegram_bot, binance_loader, symbol)
+    start_heartbeat_service(telegram_bot, db_manager, binance_loader, symbol)
 
     # 5. Pipeline xử lý khi phát hiện nến M5 đóng cửa
     def on_bar_closed_pipeline(df_closed):
@@ -134,22 +147,22 @@ def run_bot(mode: str = "signal"):
             latest_time = df_closed.iloc[-1]['timestamp']
             logger.info(f"--- BẮT ĐẦU CHU KỲ PHÂN TÍCH NẾN M5: {latest_time} ---")
 
-            # Bước 1: Kiểm tra Volume Filter (Module 1)
+            # Bước 1: Kiểm tra Volume Filter
             vol_eval = volume_filter.evaluate_bar(df_closed['volume'].values)
             if not vol_eval.pass_filter:
                 logger.info(f"Bỏ qua nến: Volume không hợp lệ ({vol_eval.reason}). Current={vol_eval.current_vol:.0f}, P20={vol_eval.p20:.0f}, P85={vol_eval.p85:.0f}")
                 return
 
-            # Bước 2: Trích xuất Feature Vector 49 chiều (Module 2)
+            # Bước 2: Trích xuất Feature Vector 49 chiều
             curr_vector = feature_extractor.extract_from_window(df_closed.iloc[-50:])
 
-            # Bước 3: So khớp với Memory Bank (Module 3 & 4)
+            # Bước 3: So khớp với Memory Bank
             match_res = similarity_engine.find_matches(curr_vector)
             if match_res.decision not in ["LONG", "SHORT"]:
                 logger.info(f"Không có tín hiệu: {match_res.decision} (Số mẫu khớp: {match_res.total_matches}, Confidence: {match_res.confidence*100:.1f}%)")
                 return
 
-            # Bước 4: Thẩm định qua Risk Manager (Module 4 & 5)
+            # Bước 4: Thẩm định qua Risk Manager
             setup_15 = df_closed.iloc[-15:]
             signal = risk_manager.evaluate_signal(
                 match_result=match_res,
@@ -165,8 +178,12 @@ def run_bot(mode: str = "signal"):
                 f"(SL: {signal.stop_loss:,.2f}, TP: {signal.take_profit:,.2f}, R:R {signal.rr_ratio:.2f})"
             )
 
-            # Bước 5: Gửi cảnh báo Telegram kèm ảnh biểu đồ snapshot
-            telegram_bot.send_signal_alert(signal, setup_bars=setup_15)
+            # Bước 5: Gửi cảnh báo Telegram hàng loạt
+            active_chat_ids = db_manager.get_active_telegram_chat_ids()
+            if active_chat_ids:
+                telegram_bot.send_signal_alert(signal, chat_ids=active_chat_ids, setup_bars=setup_15)
+            else:
+                logger.info("Không có người dùng nào đang kết nối Telegram để nhận tín hiệu.")
 
         except Exception as e:
             logger.exception(f"Lỗi ngoại lệ trong pipeline xử lý nến: {e}")
@@ -181,7 +198,13 @@ def run_bot(mode: str = "signal"):
 
     def shutdown_handler(sig, frame):
         logger.warning("\nNhận tín hiệu dừng hệ thống (Ctrl+C). Đang tắt an toàn...")
-        telegram_bot.send_message(f"🛑 <b>Binance Signal Bot ({symbol}) đã dừng an toàn.</b>")
+        shutdown_msg = f"🛑 <b>Binance Signal Bot ({symbol}) đã dừng an toàn.</b>"
+        
+        # Broadcast thông báo tắt bot
+        active_ids_shutdown = db_manager.get_active_telegram_chat_ids()
+        for cid in active_ids_shutdown:
+            telegram_bot.send_message_to_user(shutdown_msg, cid)
+            
         listener.stop()
         sys.exit(0)
 

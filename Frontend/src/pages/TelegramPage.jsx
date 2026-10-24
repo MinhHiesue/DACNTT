@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ShieldCheck, RefreshCw, Radio } from 'lucide-react'
 import { SystemConnectivityCards } from '../components/telegram/SystemConnectivityCards.jsx'
 import { TelegramBotControl } from '../components/telegram/TelegramBotControl.jsx'
@@ -8,6 +8,24 @@ import { useSystemHealth } from '../hooks/useSystemHealth.js'
 export function TelegramPage() {
   const { health, online, loading, checkHealth } = useSystemHealth(8000)
   const [runtimeLogs, setRuntimeLogs] = useState([])
+  const [userId, setUserId] = useState(null) // State lưu trữ userId
+
+  // Lấy userId từ localStorage khi trang được mount
+  useEffect(() => {
+    // Đọc chính xác Key mà file authApi.js đã lưu
+    const saved = localStorage.getItem('northstar-auth')
+    if (saved) {
+      try {
+        const session = JSON.parse(saved)
+        // Trong object session có chứa object user, lấy _id hoặc id từ đó
+        if (session && session.user) {
+          setUserId(session.user._id || session.user.id)
+        }
+      } catch (error) {
+        console.error("Lỗi parse dữ liệu northstar-auth:", error)
+      }
+    }
+  }, [])
 
   const handleLogEvent = (event) => {
     const now = new Date()
@@ -60,7 +78,8 @@ export function TelegramPage() {
       <SystemConnectivityCards health={health} online={online} />
 
       {/* 2. Telegram Bot Control Panel & Live Preview */}
-      <TelegramBotControl onLogEvent={handleLogEvent} />
+      {/* Truyền userId xuống TelegramBotControl */}
+      <TelegramBotControl userId={userId} onLogEvent={handleLogEvent} />
 
       {/* 3. Live Terminal Logs Console */}
       <LiveTerminalConsole customLogs={runtimeLogs} />
