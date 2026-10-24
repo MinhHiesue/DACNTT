@@ -1,6 +1,7 @@
-# Khởi chạy riêng Frontend Vite
+﻿﻿# Khởi chạy riêng Frontend Vite
 $RootDir = $PSScriptRoot
-$FrontendDir = Join-Path $RootDir "ĐACN"
+$FrontendDir = Join-Path $RootDir "Frontend"
+if (-not (Test-Path $FrontendDir)) { $FrontendDir = Join-Path $RootDir "ĐACN" }
 
 Write-Host "Khởi chạy Frontend Dashboard tại http://localhost:5173..." -ForegroundColor Cyan
 Set-Location $FrontendDir

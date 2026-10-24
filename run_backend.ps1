@@ -1,4 +1,4 @@
-# Khởi chạy riêng Backend API
+﻿﻿# Khởi chạy riêng Backend API
 $RootDir = $PSScriptRoot
 $BackendDir = Join-Path $RootDir "Signal_Trade"
 $PythonExe = Join-Path $BackendDir "venv\Scripts\python.exe"

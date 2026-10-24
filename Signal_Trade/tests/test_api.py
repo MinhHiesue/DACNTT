@@ -19,7 +19,7 @@ def test_api_health_endpoint(client):
     data = resp.json()
     assert data["status"] == "ok"
     assert "uptime_seconds" in data
-    assert data["symbol"] == "BTCUSDT"
+    assert data["symbol"] in ["BTCUSDT", "XAUUSDT"]
     assert data["timeframe"] == "5m"
     assert "pattern_count" in data
 

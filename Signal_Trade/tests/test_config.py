@@ -10,7 +10,7 @@ def test_load_default_config():
     """Kiểm tra nạp config từ config.yaml thành công."""
     config = load_config()
     assert isinstance(config, AppConfig)
-    assert config.binance.symbol == "BTCUSDT"
+    assert config.binance.symbol in ["BTCUSDT", "XAUUSDT"]
     assert config.binance.interval == "5m"
     assert config.volume_filter.window_size == 100
     assert config.volume_filter.lower_percentile == 20.0

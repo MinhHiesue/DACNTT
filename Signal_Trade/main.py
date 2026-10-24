@@ -28,6 +28,8 @@ from src.utils.logger import setup_logger
 from src.features.volume_filter import VolumeRegimeFilter
 from src.features.extractor import FeatureExtractor
 from src.engine.similarity_engine import SimilarityEngine
+from src.engine.xgboost_engine import XGBoostEngine
+from src.engine.hybrid_ensemble import HybridEnsembleEngine
 from src.engine.risk_manager import RiskManager
 from src.execution.telegram_bot import TelegramNotifier
 from src.execution.binance_listener import BinanceBarListener
@@ -112,6 +114,24 @@ def run_bot(mode: str = "signal"):
         config=config.similarity_engine
     )
 
+    # Khởi tạo XGBoost Engine và Hybrid Ensemble
+    xgboost_engine = None
+    xgb_path = Path(getattr(config.paths, "xgboost_model", "models/xgboost_hybrid.json"))
+    if xgb_path.exists():
+        xgboost_engine = XGBoostEngine(
+            model_path=xgb_path,
+            min_confidence=getattr(config.xgboost, "min_confidence", 0.45)
+        )
+        logger.info(f"Đã nạp mô hình XGBoost Hybrid: {xgb_path.name}")
+
+    hybrid_engine = HybridEnsembleEngine(
+        similarity_engine=similarity_engine,
+        xgboost_engine=xgboost_engine,
+        min_xgboost_prob=getattr(config.ensemble, "min_xgboost_prob", 0.45),
+        blend_weight_faiss=getattr(config.ensemble, "blend_weight_faiss", 0.50),
+        blend_weight_xgboost=getattr(config.ensemble, "blend_weight_xgboost", 0.50)
+    )
+
     risk_manager = RiskManager(config=config.risk_manager)
     telegram_bot = TelegramNotifier(credentials=config.telegram)
     binance_loader = BinanceDataLoader(
@@ -130,6 +150,7 @@ def run_bot(mode: str = "signal"):
     startup_msg = (
         f"🚀 <b>Binance Pattern Signal Bot đã sẵn sàng!</b>\n"
         f"• Cặp giao dịch: <code>{symbol} {interval.upper()}</code>\n"
+        f"• Thuật toán: <b>Hybrid Ensemble (FAISS + XGBoost)</b>\n"
         f"• Số mẫu hình ký ức: <b>{len(similarity_engine.vectors):,}</b> mẫu\n"
         f"• Ngưỡng tương đồng: <b>{config.similarity_engine.min_similarity*100:.0f}%</b>\n"
         f"• Chế độ: <b>Bắn tín hiệu tự động</b>"
@@ -156,11 +177,13 @@ def run_bot(mode: str = "signal"):
             # Bước 2: Trích xuất Feature Vector 49 chiều
             curr_vector = feature_extractor.extract_from_window(df_closed.iloc[-50:])
 
-            # Bước 3: So khớp với Memory Bank
-            match_res = similarity_engine.find_matches(curr_vector)
-            if match_res.decision not in ["LONG", "SHORT"]:
-                logger.info(f"Không có tín hiệu: {match_res.decision} (Số mẫu khớp: {match_res.total_matches}, Confidence: {match_res.confidence*100:.1f}%)")
+            # Bước 3: Động cơ Hybrid Ensemble (FAISS + XGBoost Dual-Confirmation)
+            hybrid_res = hybrid_engine.evaluate(curr_vector)
+            if hybrid_res.decision not in ["LONG", "SHORT"]:
+                logger.info(f"Không có tín hiệu: {hybrid_res.decision} ({hybrid_res.reason})")
                 return
+
+            match_res = hybrid_res.to_match_result()
 
             # Bước 4: Thẩm định qua Risk Manager
             setup_15 = df_closed.iloc[-15:]
@@ -169,13 +192,18 @@ def run_bot(mode: str = "signal"):
                 setup_bars=setup_15,
                 symbol=symbol
             )
+            signal.ensemble_status = hybrid_res.status
+            signal.ai_model = "Hybrid FAISS + XGBoost"
+            signal.xgboost_confidence = hybrid_res.xgboost_prob_long if hybrid_res.decision == "LONG" else hybrid_res.xgboost_prob_short
+
             if signal.status != "APPROVED":
                 logger.warning(f"Tín hiệu bị từ chối: {signal.reject_reason}")
                 return
 
             logger.success(
-                f"🎯 TÍN HIỆU ĐƯỢC PHÊ DUYỆT: {signal.direction} @ {signal.entry_price:,.2f} "
-                f"(SL: {signal.stop_loss:,.2f}, TP: {signal.take_profit:,.2f}, R:R {signal.rr_ratio:.2f})"
+                f"🎯 TÍN HIỆU HYBRID ENSEMBLE ĐƯỢC PHÊ DUYỆT: {signal.direction} @ {signal.entry_price:,.2f} "
+                f"(SL: {signal.stop_loss:,.2f}, TP: {signal.take_profit:,.2f}, R:R {signal.rr_ratio:.2f}, "
+                f"FAISS: {hybrid_res.faiss_confidence*100:.1f}%, XGBoost: {signal.xgboost_confidence*100:.1f}%)"
             )
 
             # Bước 5: Gửi cảnh báo Telegram hàng loạt

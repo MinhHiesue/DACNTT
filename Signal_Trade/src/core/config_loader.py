@@ -58,9 +58,23 @@ class ExecutionConfig(BaseModel):
     poll_interval_sec: float = 2.0
 
 
+class XGBoostConfig(BaseModel):
+    enabled: bool = True
+    model_path: str = "models/xgboost_hybrid.json"
+    min_confidence: float = Field(default=0.45, ge=0.0, le=1.0)
+
+
+class EnsembleConfig(BaseModel):
+    mode: str = "hybrid"
+    min_xgboost_prob: float = Field(default=0.45, ge=0.0, le=1.0)
+    blend_weight_faiss: float = Field(default=0.50, ge=0.0, le=1.0)
+    blend_weight_xgboost: float = Field(default=0.50, ge=0.0, le=1.0)
+
+
 class PathsConfig(BaseModel):
-    raw_data: str = "data/raw/btcusdt_m5.parquet"
+    raw_data: str = "data/raw/xauusdt_m5.parquet"
     pattern_db: str = "data/patterns/winning_patterns.parquet"
+    xgboost_model: str = "models/xgboost_hybrid.json"
     logs_dir: str = "logs"
 
 
@@ -75,6 +89,8 @@ class AppConfig(BaseModel):
     volume_filter: VolumeFilterConfig = Field(default_factory=VolumeFilterConfig)
     feature_extractor: FeatureExtractorConfig = Field(default_factory=FeatureExtractorConfig)
     similarity_engine: SimilarityEngineConfig = Field(default_factory=SimilarityEngineConfig)
+    xgboost: XGBoostConfig = Field(default_factory=XGBoostConfig)
+    ensemble: EnsembleConfig = Field(default_factory=EnsembleConfig)
     risk_manager: RiskManagerConfig = Field(default_factory=RiskManagerConfig)
     execution: ExecutionConfig = Field(default_factory=ExecutionConfig)
     paths: PathsConfig = Field(default_factory=PathsConfig)

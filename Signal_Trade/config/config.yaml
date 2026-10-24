@@ -53,8 +53,21 @@ execution:
   mode: "signal"                 # Chế độ phát tín hiệu cảnh báo ("signal")
   poll_interval_sec: 2.0         # Tần suất kiểm tra polling dự phòng (giây)
 
+# Module AI: XGBoost Classifier & Hybrid Ensemble
+xgboost:
+  enabled: true
+  model_path: "models/xgboost_hybrid.json"
+  min_confidence: 0.45           # Ngưỡng xác suất tối thiểu để xác nhận
+
+ensemble:
+  mode: "hybrid"                 # "hybrid" (FAISS + XGBoost), "faiss_only", "xgboost_only"
+  min_xgboost_prob: 0.45         # Ngưỡng đồng thuận từ XGBoost
+  blend_weight_faiss: 0.50       # Trọng số điểm tin cậy FAISS (50%)
+  blend_weight_xgboost: 0.50     # Trọng số điểm tin cậy XGBoost (50%)
+
 # Đường dẫn lưu trữ tập tin
 paths:
   raw_data: "data/raw/xauusdt_m5.parquet"
   pattern_db: "data/patterns/winning_patterns.parquet"
+  xgboost_model: "models/xgboost_hybrid.json"
   logs_dir: "logs"

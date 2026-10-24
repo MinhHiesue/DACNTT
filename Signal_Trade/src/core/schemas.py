@@ -51,3 +51,6 @@ class TradeSignal(BaseModel):
     matched_count: int
     status: str = Field(description="APPROVED hoặc REJECTED")
     reject_reason: Optional[str] = None
+    ensemble_status: Optional[str] = "CONFIRMED"
+    xgboost_confidence: Optional[float] = None
+    ai_model: Optional[str] = "Hybrid FAISS + XGBoost"

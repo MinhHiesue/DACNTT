@@ -1,0 +1,90 @@
+{
+  "accuracy": 0.432,
+  "total_samples": 10078,
+  "train_samples": 8062,
+  "test_samples": 2016,
+  "classification_report": {
+    "NEUTRAL": {
+      "precision": 0.9178082191780822,
+      "recall": 0.3738375697458152,
+      "f1-score": 0.5312775330396475,
+      "support": 1613.0
+    },
+    "LONG": {
+      "precision": 0.1641991924629879,
+      "recall": 0.6971428571428572,
+      "f1-score": 0.2657952069716776,
+      "support": 175.0
+    },
+    "SHORT": {
+      "precision": 0.237012987012987,
+      "recall": 0.6403508771929824,
+      "f1-score": 0.3459715639810427,
+      "support": 228.0
+    },
+    "accuracy": 0.4320436507936508,
+    "macro avg": {
+      "precision": 0.439673466218019,
+      "recall": 0.5704437680272183,
+      "f1-score": 0.381014767997456,
+      "support": 2016.0
+    },
+    "weighted avg": {
+      "precision": 0.7753960700665826,
+      "recall": 0.4320436507936508,
+      "f1-score": 0.4872749695439845,
+      "support": 2016.0
+    }
+  },
+  "feature_importances": {
+    "delta_low_t14": 0.0636,
+    "rsi_7_norm": 0.0397,
+    "delta_high_t13": 0.0386,
+    "delta_high_t0": 0.0352,
+    "delta_low_t0": 0.0328,
+    "delta_close_t14": 0.0309,
+    "delta_high_t14": 0.0306,
+    "delta_low_t13": 0.0277,
+    "delta_low_t12": 0.0253,
+    "body_to_wick_ratio": 0.0235,
+    "delta_low_t6": 0.0216,
+    "delta_high_t5": 0.0212,
+    "delta_high_t12": 0.0212,
+    "delta_low_t1": 0.021,
+    "delta_high_t1": 0.0207,
+    "delta_high_t6": 0.0205,
+    "delta_high_t10": 0.0198,
+    "delta_low_t8": 0.0198,
+    "delta_low_t4": 0.0195,
+    "delta_low_t11": 0.0191,
+    "delta_high_t11": 0.019,
+    "delta_low_t3": 0.0183,
+    "delta_low_t10": 0.0183,
+    "delta_close_t12": 0.0176,
+    "delta_low_t5": 0.0176,
+    "delta_close_t8": 0.017,
+    "delta_low_t9": 0.017,
+    "vwap_dist_atr": 0.0169,
+    "delta_close_t10": 0.0167,
+    "delta_high_t9": 0.0167,
+    "delta_close_t13": 0.0165,
+    "delta_high_t8": 0.0164,
+    "delta_low_t7": 0.0164,
+    "delta_high_t2": 0.0163,
+    "delta_close_t9": 0.0162,
+    "delta_high_t4": 0.0162,
+    "delta_close_t5": 0.016,
+    "delta_close_t6": 0.016,
+    "delta_close_t4": 0.0156,
+    "delta_close_t11": 0.0156,
+    "delta_close_t2": 0.0149,
+    "delta_low_t2": 0.0148,
+    "delta_close_t3": 0.0147,
+    "delta_high_t3": 0.0144,
+    "vol_zscore_20": 0.0144,
+    "delta_high_t7": 0.0143,
+    "delta_close_t7": 0.0125,
+    "delta_close_t1": 0.0112,
+    "delta_close_t0": 0.0
+  }
+}

@@ -41,7 +41,7 @@ export function TradingViewCandleChart({
 
   // Controls state
   const [showVolume, setShowVolume] = useState(true)
-  const [showSignalLines, setShowSignalLines] = useState(true)
+  const [showSignalLines, setShowSignalLines] = useState(false)
   const [hoveredCandle, setHoveredCandle] = useState(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
 

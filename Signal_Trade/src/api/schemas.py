@@ -53,6 +53,21 @@ class TradeSignalResponse(BaseModel):
     matched_count: int
     status: str
     reject_reason: Optional[str] = None
+    ensemble_status: Optional[str] = "CONFIRMED"
+    xgboost_confidence: Optional[float] = None
+    ai_model: Optional[str] = "Hybrid FAISS + XGBoost"
+
+
+class FeatureImportanceItem(BaseModel):
+    feature: str
+    importance: float
+
+
+class XGBoostMetricsResponse(BaseModel):
+    accuracy: float
+    is_model_loaded: bool
+    top_features: List[FeatureImportanceItem]
+    model_path: str
 
 
 class SignalsHistoryResponse(BaseModel):
