@@ -1,25 +1,24 @@
 import { useState, useMemo } from 'react'
-import { ShieldCheck, RefreshCw, AlertCircle, Sparkles } from 'lucide-react'
+import { ShieldCheck, AlertCircle } from 'lucide-react'
 import { SignalDetailPanel } from '../components/signals/SignalDetailPanel.jsx'
 import { SignalFilters } from '../components/signals/SignalFilters.jsx'
 import { SignalStatsGrid } from '../components/signals/SignalStatsGrid.jsx'
 import { SignalTable } from '../components/signals/SignalTable.jsx'
 import { ActiveSignalHero } from '../components/signals/ActiveSignalHero.jsx'
 import { PatternInspectorModal } from '../components/signals/PatternInspectorModal.jsx'
+import { ContinuousRadarHud } from '../components/common/ContinuousRadarHud.jsx'
 import { useSignals } from '../hooks/useSignals.js'
 import { AI_SIGNAL_DATA } from '../data/market.js'
 import { getSignalDirection } from '../data/signalUtils.js'
 
 export function AISignalsPage({ query = '' }) {
+  const [activeSymbol, setActiveSymbol] = useState('BTCUSDT')
   const {
     latestSignal: liveLatest,
     signalsHistory: liveHistory,
     patternInspector,
     loading,
-    scanning,
     error,
-    refresh,
-    triggerScan,
     loadInspector
   } = useSignals(5000)
 
@@ -125,22 +124,17 @@ export function AISignalsPage({ query = '' }) {
               <span>Chế độ ngoại tuyến / Fallback</span>
             </div>
           )}
-          <button
-            onClick={() => refresh()}
-            className="p-2 bg-[#161B22] hover:bg-[#21262D] text-[#8B949E] hover:text-white rounded-xl border border-[#21262D] transition-colors"
-            title="Làm mới dữ liệu"
-          >
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-          </button>
         </div>
       </section>
 
-      {/* Active Signal Hero Card */}
+      {/* Radar HUD liên tục */}
+      <ContinuousRadarHud onNavigate={null} />
+
+      {/* Active Signal Hero Card (1 mã tối đa 1 setup, chờ duyệt / following) */}
       <ActiveSignalHero
-        signal={activeSignal}
+        activeSymbol={activeSymbol}
+        onSelectSymbol={setActiveSymbol}
         onOpenInspector={handleOpenInspector}
-        onTriggerScan={triggerScan}
-        isScanning={scanning}
       />
 
       {/* Stats Grid */}

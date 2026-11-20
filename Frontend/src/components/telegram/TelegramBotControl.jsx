@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Send, CheckCircle2, AlertTriangle, RefreshCw, MessageSquare, ShieldCheck, Sparkles, Image as ImageIcon } from 'lucide-react'
 import { sendTelegramTestAlert } from '../../api/client.js'
 import { TelegramConfigForm } from './TelegramConfigForm.jsx'
@@ -10,6 +10,17 @@ export function TelegramBotControl({ onLogEvent, userId }) {
   
   // State quản lý trạng thái bật/tắt bot
   const [connected, setConnected] = useState(false)
+
+  useEffect(() => {
+    fetch('http://localhost:8000/api/telegram/status')
+      .then(res => res.json())
+      .then(data => {
+        if (data.connected) {
+          setConnected(true)
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   const handleSendTest = async () => {
     setSending(true)
@@ -130,7 +141,14 @@ export function TelegramBotControl({ onLogEvent, userId }) {
               <div className="space-y-3 text-xs">
                 <div className="flex items-center justify-between pb-2 border-b border-[#21262D]">
                   <span className="text-[#8B949E]">Bot Username:</span>
-                  <span className="font-mono text-cyan-300 font-bold">@NorthstarPatternBot</span>
+                  <a
+                    href="https://t.me/DACNCNTN_bot"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-mono text-cyan-300 font-bold hover:underline"
+                  >
+                    @DACNCNTN_bot
+                  </a>
                 </div>
                 <div className="flex items-center justify-between pb-2 border-b border-[#21262D]">
                   <span className="text-[#8B949E]">Chat ID nhận tin:</span>

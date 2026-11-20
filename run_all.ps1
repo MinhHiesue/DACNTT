@@ -13,18 +13,43 @@ Write-Host "====================================================================
 Write-Host ""
 
 $RootDir = $PSScriptRoot
-$BackendDir = Join-Path $RootDir "Signal_Trade"
+$NodeBackendDir = Join-Path $RootDir "Backend"
+$FastApiDir = Join-Path $RootDir "Signal_Trade"
 $FrontendDir = Join-Path $RootDir "Frontend"
 if (-not (Test-Path $FrontendDir)) { $FrontendDir = Join-Path $RootDir "ĐACN" }
 $AuthBackendDir = Join-Path $RootDir "Backend"
 
-$BackendProcess = $null
+$NodeBackendProcess = $null
+$FastApiProcess = $null
 $FrontendProcess = $null
 $AuthBackendProcess = $null
 
 try {
-    # 1. Xác định đường dẫn Python trong venv
-    $VenvPython = Join-Path $BackendDir "venv\Scripts\python.exe"
+    # 0. Kiểm tra dịch vụ MongoDB
+    $mongoService = Get-Service MongoDB -ErrorAction SilentlyContinue
+    if ($mongoService) {
+        if ($mongoService.Status -ne "Running") {
+            Write-Host "[INFO] Đang khởi động dịch vụ MongoDB..." -ForegroundColor DarkGray
+            Start-Service MongoDB -ErrorAction SilentlyContinue
+        }
+        Write-Host "✔ MongoDB Service: Đang hoạt động" -ForegroundColor Green
+    } else {
+        Write-Host "[WARN] Không tìm thấy Windows Service 'MongoDB'. Hãy đảm bảo MongoDB đang chạy ở cổng 27017." -ForegroundColor Yellow
+    }
+
+    # 1. Khởi chạy Node.js Backend API (Port 5000)
+    Write-Host ""
+    Write-Host "[1/3] 🟢 Đang khởi động Node.js Auth & Telegram API trên cổng 5000..." -ForegroundColor Cyan
+    $NodeBackendProcess = Start-Process -FilePath "node.exe" `
+        -ArgumentList "src/server.js" `
+        -WorkingDirectory $NodeBackendDir `
+        -PassThru
+
+    Write-Host "      Node Backend PID: $($NodeBackendProcess.Id) -> http://localhost:5000" -ForegroundColor Green
+    Start-Sleep -Seconds 2
+
+    # 2. Xác định Python venv và Khởi chạy FastAPI Server (Port 8000)
+    $VenvPython = Join-Path $FastApiDir "venv\Scripts\python.exe"
     if (Test-Path $VenvPython) {
         $PythonExe = $VenvPython
         Write-Host "[INFO] Tìm thấy môi trường ảo Python tại: $VenvPython" -ForegroundColor DarkGray
@@ -33,15 +58,14 @@ try {
         Write-Host "[WARN] Không tìm thấy venv cục bộ, sử dụng python hệ thống." -ForegroundColor Yellow
     }
 
-    # 2. Khởi chạy Backend FastAPI Server
     Write-Host ""
     Write-Host "[1/4] 🔌 Đang khởi động Backend API (FastAPI) trên cổng 8000..." -ForegroundColor Cyan
-    $BackendProcess = Start-Process -FilePath $PythonExe `
+    $FastApiProcess = Start-Process -FilePath $PythonExe `
         -ArgumentList "-m uvicorn src.api.server:app --host 0.0.0.0 --port 8000" `
-        -WorkingDirectory $BackendDir `
+        -WorkingDirectory $FastApiDir `
         -PassThru
 
-    Write-Host "      Backend PID: $($BackendProcess.Id) -> http://localhost:8000" -ForegroundColor Green
+    Write-Host "      FastAPI PID: $($FastApiProcess.Id) -> http://localhost:8000" -ForegroundColor Green
     Start-Sleep -Seconds 2
 
     # Khởi chạy Express API phục vụ đăng ký và đăng nhập
@@ -55,7 +79,7 @@ try {
     Write-Host "      Auth Backend PID: $($AuthBackendProcess.Id) -> http://localhost:5000" -ForegroundColor Green
     Start-Sleep -Seconds 2
 
-    # 3. Khởi chạy Frontend Vite Dev Server
+    # 3. Khởi chạy Frontend Vite Dev Server (Port 5173)
     Write-Host ""
     Write-Host "[3/4] 💻 Đang khởi động Frontend Dashboard (Vite) trên cổng 5173..." -ForegroundColor Cyan
     $FrontendProcess = Start-Process -FilePath "npm.cmd" `
@@ -73,10 +97,11 @@ try {
 
     Write-Host ""
     Write-Host "======================================================================" -ForegroundColor Green
-    Write-Host "   ✅ HỆ THỐNG ĐÃ HOẠT ĐỘNG HOÀN TOÀN TRÊN CỔNG 5173 VÀ 8000!         " -ForegroundColor Green
-    Write-Host "   • Web Dashboard:  http://localhost:5173                           " -ForegroundColor White
-    Write-Host "   • Swagger API:    http://localhost:8000/docs                      " -ForegroundColor White
-    Write-Host "   • WebSocket Live: ws://localhost:8000/ws/live                     " -ForegroundColor White
+    Write-Host "   ✅ HỆ THỐNG ĐÃ HOẠT ĐỘNG HOÀN TOÀN!                               " -ForegroundColor Green
+    Write-Host "   • Web Dashboard:    http://localhost:5173                         " -ForegroundColor White
+    Write-Host "   • FastAPI Docs:     http://localhost:8000/docs                    " -ForegroundColor White
+    Write-Host "   • WebSocket Live:   ws://localhost:8000/ws/live                   " -ForegroundColor White
+    Write-Host "   • Node Backend API: http://localhost:5000/api                     " -ForegroundColor White
     Write-Host "                                                                      " -ForegroundColor Gray
     Write-Host "   [Nhấn Enter hoặc Ctrl+C bất cứ lúc nào để tắt toàn bộ hệ thống]    " -ForegroundColor Yellow
     Write-Host "======================================================================" -ForegroundColor Green
@@ -99,9 +124,14 @@ try {
 } finally {
     Write-Host "`nĐang dừng toàn bộ tiến trình hệ thống..." -ForegroundColor Yellow
 
-    if ($BackendProcess -and -not $BackendProcess.HasExited) {
-        Stop-Process -Id $BackendProcess.Id -Force -ErrorAction SilentlyContinue
-        Write-Host "✔ Đã tắt Backend API (PID $($BackendProcess.Id))." -ForegroundColor DarkGray
+    if ($NodeBackendProcess -and -not $NodeBackendProcess.HasExited) {
+        Stop-Process -Id $NodeBackendProcess.Id -Force -ErrorAction SilentlyContinue
+        Write-Host "✔ Đã tắt Node Backend (PID $($NodeBackendProcess.Id))." -ForegroundColor DarkGray
+    }
+
+    if ($FastApiProcess -and -not $FastApiProcess.HasExited) {
+        Stop-Process -Id $FastApiProcess.Id -Force -ErrorAction SilentlyContinue
+        Write-Host "✔ Đã tắt FastAPI Server (PID $($FastApiProcess.Id))." -ForegroundColor DarkGray
     }
 
     if ($FrontendProcess -and -not $FrontendProcess.HasExited) {

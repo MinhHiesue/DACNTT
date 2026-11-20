@@ -14,11 +14,18 @@ export function AppLayout({ children, user, onLogout }) {
     setCompactLayout(enabled)
   }
   const navigateToLabel = (label) => {
+    if (!label) return
+    if (label.startsWith('/')) {
+      navigate(label)
+      return
+    }
     const route = {
       'Tổng quan': '/overview',
       'Phân tích thị trường': '/market',
       'Tín hiệu AI': '/signals',
       'Lịch sử': '/history',
+      'Lịch sử tín hiệu': '/history',
+      'Lịch sử giao dịch': '/history',
       'Hiệu suất mô hình': '/performance',
       'Telegram Bot': '/telegram',
       'Cài đặt': '/settings',

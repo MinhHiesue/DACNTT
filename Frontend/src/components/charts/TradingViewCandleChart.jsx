@@ -39,40 +39,16 @@ export function TradingViewCandleChart({
   const markersRef = useRef(null)
   const priceLinesRef = useRef([])
 
-  // Controls state
+  // Controls state - Mặc định bật đường hiển thị Setup duy nhất
   const [showVolume, setShowVolume] = useState(true)
-  const [showSignalLines, setShowSignalLines] = useState(false)
+  const [showSignalLines, setShowSignalLines] = useState(true)
   const [hoveredCandle, setHoveredCandle] = useState(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
 
-  // Chuẩn hóa và làm sạch dữ liệu nến (bắt buộc time tăng dần, không trùng lặp)
+  // Chuẩn hóa và làm sạch dữ liệu nến thật từ Binance (bắt buộc time tăng dần, không trùng lặp, KHÔNG MOCK)
   const sanitizedKlines = useMemo(() => {
     if (!klines || klines.length === 0) {
-      // Dữ liệu mẫu chuẩn nến M5 nếu đang kết nối API
-      const nowSec = Math.floor(Date.now() / 1000)
-      const count = 300
-      let lastClose = 67482.35
-      const mockBars = []
-
-      for (let i = count; i >= 0; i--) {
-        const t = nowSec - i * 300
-        const change = (Math.sin(i * 0.25) * 65) + ((Math.random() - 0.49) * 45)
-        const open = lastClose
-        const close = open + change
-        const high = Math.max(open, close) + Math.random() * 30
-        const low = Math.min(open, close) - Math.random() * 30
-        const vol = 15 + Math.random() * 60
-        lastClose = close
-        mockBars.push({
-          time: t,
-          open: Math.round(open * 100) / 100,
-          high: Math.round(high * 100) / 100,
-          low: Math.round(low * 100) / 100,
-          close: Math.round(close * 100) / 100,
-          volume: Math.round(vol * 100) / 100
-        })
-      }
-      return mockBars
+      return []
     }
 
     const map = new Map()
@@ -276,46 +252,46 @@ export function TradingViewCandleChart({
     })
     priceLinesRef.current = []
 
-    // 2. Tạo Markers từ danh sách tín hiệu
+    // 2. LOGIC MỚI: TỐI ĐA TRÊN CHART CHỈ CÓ 1 LỆNH LIVE DUY NHẤT
+    // Tuyệt đối không vẽ hàng chục mũi tên quá khứ gây rối mắt
+    const singleLiveSetup = activeSignal || (signals && signals.length === 1 ? signals[0] : null)
     const markers = []
-    const signalList = signals && signals.length > 0 ? signals : (activeSignal ? [activeSignal] : [])
 
-    for (const sig of signalList) {
-      const isLong = sig.direction === 'LONG' || sig.type === 'BUY'
-      const sigTime = sig.timestamp_unix || (sig.createdAt ? Math.floor(sig.createdAt / 1000) : null)
+    if (singleLiveSetup) {
+      const isLong = singleLiveSetup.direction === 'LONG' || singleLiveSetup.direction === 'BUY' || singleLiveSetup.type === 'BUY'
+      const sigTime = singleLiveSetup.timestamp_unix || (singleLiveSetup.createdAt ? Math.floor(singleLiveSetup.createdAt / 1000) : null)
 
-      if (sigTime) {
-        const matchedBar = sanitizedKlines.find((b) => Math.abs(b.time - sigTime) <= 600)
-        const targetTime = matchedBar ? matchedBar.time : sanitizedKlines[sanitizedKlines.length - 1].time
+      const targetTime = sigTime && sanitizedKlines.length > 0
+        ? (sanitizedKlines.find((b) => Math.abs(b.time - sigTime) <= 600)?.time || sanitizedKlines[sanitizedKlines.length - 1].time)
+        : (sanitizedKlines[sanitizedKlines.length - 1]?.time || 0)
 
+      if (targetTime) {
         markers.push({
           time: targetTime,
           position: isLong ? 'belowBar' : 'aboveBar',
           color: isLong ? '#089981' : '#F23645',
           shape: isLong ? 'arrowUp' : 'arrowDown',
-          text: `${isLong ? 'BUY' : 'SELL'} @ $${formatSignalPrice(sig.entry_price || sig.price)}`
+          text: `LIVE: ${isLong ? 'BUY' : 'SELL'} @ $${formatSignalPrice(singleLiveSetup.entry_price || singleLiveSetup.price)}`
         })
       }
     }
 
-    // Gắn markers vào nến qua createSeriesMarkers
-    if (markers.length > 0) {
-      if (!markersRef.current) {
-        markersRef.current = createSeriesMarkers(candleSeries, markers)
-      } else {
-        markersRef.current.setMarkers(markers)
-      }
+    // Gắn duy nhất 1 marker hoặc xóa sạch nếu không có setup
+    if (!markersRef.current) {
+      markersRef.current = createSeriesMarkers(candleSeries, markers)
+    } else {
+      markersRef.current.setMarkers(markers)
     }
 
-    // 3. Nếu bật showSignalLines và có activeSignal, vẽ Entry, SL, TP, Swing
-    if (showSignalLines && activeSignal) {
-      const isLong = activeSignal.direction === 'LONG' || activeSignal.type === 'BUY'
-      const entryPrice = activeSignal.entry_price || activeSignal.price || 0
-      const stopLoss = activeSignal.stop_loss || activeSignal.stop || 0
-      const takeProfit = activeSignal.take_profit || activeSignal.target || 0
-      const deltaSl = activeSignal.delta_sl || Math.abs(entryPrice - stopLoss) || 0
-      const deltaTp = activeSignal.delta_tp || Math.abs(takeProfit - entryPrice) || 0
-      const rrRatio = activeSignal.rr_ratio || (deltaSl > 0 ? deltaTp / deltaSl : 1.5)
+    // 3. Nếu có setup live, luôn vẽ 3 đường giá chuẩn TradingView: ENTRY, SL, TP
+    if (showSignalLines && singleLiveSetup) {
+      const isLong = singleLiveSetup.direction === 'LONG' || singleLiveSetup.direction === 'BUY' || singleLiveSetup.type === 'BUY'
+      const entryPrice = singleLiveSetup.entry_price || singleLiveSetup.price || 0
+      const stopLoss = singleLiveSetup.stop_loss || singleLiveSetup.stop || 0
+      const takeProfit = singleLiveSetup.take_profit || singleLiveSetup.target || 0
+      const deltaSl = singleLiveSetup.delta_sl || Math.abs(entryPrice - stopLoss) || 0
+      const deltaTp = singleLiveSetup.delta_tp || Math.abs(takeProfit - entryPrice) || 0
+      const rrRatio = singleLiveSetup.rr_ratio || (deltaSl > 0 ? deltaTp / deltaSl : 1.5)
 
       if (entryPrice > 0) {
         const entryLine = candleSeries.createPriceLine({
@@ -429,147 +405,147 @@ export function TradingViewCandleChart({
         isFullscreen ? 'p-4 rounded-none h-screen flex flex-col justify-between' : ''
       }`}
     >
-      {/* Top Chart Header Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-[#161B22] border-b border-[#21262D]">
-        {/* Left: Pair, Timeframe, Live Feed Badge */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-white text-base tracking-wide font-mono">
+      {/* Top Chart Header Toolbar — 2 tầng cố định, không giật màn hình */}
+      <div className="bg-[#161B22] border-b border-[#21262D]">
+        {/* Hàng 1: Symbol, Tag, Feed + Toàn bộ nút công cụ bên phải (Cố định 1 dòng) */}
+        <div className="flex items-center justify-between gap-2 px-3.5 pt-2.5 pb-1.5 min-w-0">
+          {/* Left: Symbol + Timeframe + Live badge */}
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="font-bold text-white text-sm tracking-wide font-mono whitespace-nowrap">
               {symbol}
             </span>
-            <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-[#21262D] text-cyan-300 border border-[#30363D]">
+            <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-[#21262D] text-cyan-300 border border-[#30363D] whitespace-nowrap">
               {timeframe.toUpperCase()}
             </span>
-          </div>
-
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
-            <Radio size={12} className="animate-pulse" />
-            <span>BINANCE FEED</span>
-          </div>
-
-          {/* Depth Range Presets Selector */}
-          {onBarLimitChange && (
-            <div className="hidden sm:flex items-center bg-[#0D1117] p-0.5 rounded-lg border border-[#30363D] text-[11px] font-mono">
-              {[150, 500, 1000, 1500].map((count) => (
-                <button
-                  key={count}
-                  onClick={() => onBarLimitChange(count)}
-                  className={`px-2 py-0.5 rounded transition-colors ${
-                    barLimit === count
-                      ? 'bg-blue-600 text-white font-bold'
-                      : 'text-[#8B949E] hover:text-white'
-                  }`}
-                  title={`Tải ${count} nến lịch sử`}
-                >
-                  {count}B
-                </button>
-              ))}
+            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-semibold whitespace-nowrap">
+              <Radio size={11} className="animate-pulse" />
+              <span>BINANCE FEED</span>
             </div>
-          )}
-        </div>
-
-        {/* Center: TradingView-style Floating HUD (OHLC & % change) */}
-        {displayCandle && (
-          <div className="flex flex-wrap items-center gap-3 font-mono text-xs text-[#8B949E]">
-            <span>
-              O: <b className="text-white">${formatSignalPrice(displayCandle.open)}</b>
-            </span>
-            <span>
-              H: <b className="text-[#089981]">${formatSignalPrice(displayCandle.high)}</b>
-            </span>
-            <span>
-              L: <b className="text-[#F23645]">${formatSignalPrice(displayCandle.low)}</b>
-            </span>
-            <span>
-              C:{' '}
-              <b className={isUp ? 'text-[#089981]' : 'text-[#F23645]'}>
-                ${formatSignalPrice(displayCandle.close)}
-              </b>
-            </span>
-            <span className={`font-semibold ${isUp ? 'text-[#089981]' : 'text-[#F23645]'}`}>
-              {isUp ? '+' : ''}${formatSignalPrice(deltaPrice)} ({isUp ? '+' : ''}{deltaPct.toFixed(2)}%)
-            </span>
-            {displayCandle.volume > 0 && (
-              <span className="hidden lg:inline text-cyan-300">
-                Vol: <b>{displayCandle.volume.toFixed(2)} BTC</b>
-              </span>
+            {/* Depth Range Presets */}
+            {onBarLimitChange && (
+              <div className="hidden lg:flex items-center bg-[#0D1117] p-0.5 rounded-lg border border-[#30363D] text-[11px] font-mono">
+                {[150, 500, 1000, 1500].map((count) => (
+                  <button
+                    key={count}
+                    onClick={() => onBarLimitChange(count)}
+                    className={`px-2 py-0.5 rounded transition-colors ${
+                      barLimit === count
+                        ? 'bg-blue-600 text-white font-bold'
+                        : 'text-[#8B949E] hover:text-white'
+                    }`}
+                    title={`Tải ${count} nến lịch sử`}
+                  >
+                    {count}B
+                  </button>
+                ))}
+              </div>
             )}
           </div>
-        )}
 
-        {/* Right: Zoom In/Out, Fit, SL/TP, Fullscreen Controls */}
-        <div className="flex items-center gap-1.5">
-          {/* Zoom Out (-) */}
-          <button
-            onClick={handleZoomOut}
-            className="p-1.5 px-2 bg-[#0D1117] hover:bg-[#21262D] text-[#8B949E] hover:text-white border border-[#30363D] rounded-lg text-xs font-semibold flex items-center transition-colors"
-            title="Thu nhỏ biểu đồ (Zoom Out)"
-          >
-            <ZoomOut size={13} />
-          </button>
+          {/* Right: Toolbar luôn ở cuối hàng 1, không bao giờ bị đẩy xuống dòng */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* Zoom Out (-) */}
+            <button
+              onClick={handleZoomOut}
+              className="p-1.5 px-2 bg-[#0D1117] hover:bg-[#21262D] text-[#8B949E] hover:text-white border border-[#30363D] rounded-lg text-xs font-semibold flex items-center transition-colors"
+              title="Thu nhỏ biểu đồ (Zoom Out)"
+            >
+              <ZoomOut size={13} />
+            </button>
 
-          {/* Zoom In (+) */}
-          <button
-            onClick={handleZoomIn}
-            className="p-1.5 px-2 bg-[#0D1117] hover:bg-[#21262D] text-[#8B949E] hover:text-white border border-[#30363D] rounded-lg text-xs font-semibold flex items-center transition-colors"
-            title="Phóng to biểu đồ (Zoom In)"
-          >
-            <ZoomIn size={13} />
-          </button>
+            {/* Zoom In (+) */}
+            <button
+              onClick={handleZoomIn}
+              className="p-1.5 px-2 bg-[#0D1117] hover:bg-[#21262D] text-[#8B949E] hover:text-white border border-[#30363D] rounded-lg text-xs font-semibold flex items-center transition-colors"
+              title="Phóng to biểu đồ (Zoom In)"
+            >
+              <ZoomIn size={13} />
+            </button>
 
-          {/* Reset View */}
-          <button
-            onClick={handleResetView}
-            className="p-1.5 px-2 bg-[#0D1117] hover:bg-[#21262D] text-[#8B949E] hover:text-white border border-[#30363D] rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
-            title="Căn chỉnh vừa vặn & Reset tỷ lệ nến"
-          >
-            <RotateCcw size={13} />
-            <span className="hidden sm:inline">Fit</span>
-          </button>
+            {/* Reset View */}
+            <button
+              onClick={handleResetView}
+              className="p-1.5 px-2 bg-[#0D1117] hover:bg-[#21262D] text-[#8B949E] hover:text-white border border-[#30363D] rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
+              title="Căn chỉnh vừa vặn & Reset tỷ lệ nến"
+            >
+              <RotateCcw size={13} />
+              <span className="hidden sm:inline">Fit</span>
+            </button>
 
-          {/* Toggle Volume */}
-          <button
-            onClick={() => setShowVolume((prev) => !prev)}
-            className={`p-1.5 px-2 rounded-lg text-xs font-semibold flex items-center gap-1 border transition-colors ${
-              showVolume
-                ? 'bg-blue-500/15 text-blue-400 border-blue-500/30'
-                : 'bg-[#0D1117] text-[#8B949E] border-[#30363D]'
-            }`}
-            title="Bật/Tắt Volume Sub-series"
-          >
-            <BarChart2 size={13} />
-            <span className="hidden md:inline">Vol</span>
-          </button>
+            {/* Toggle Volume */}
+            <button
+              onClick={() => setShowVolume((prev) => !prev)}
+              className={`p-1.5 px-2 rounded-lg text-xs font-semibold flex items-center gap-1 border transition-colors ${
+                showVolume
+                  ? 'bg-blue-500/15 text-blue-400 border-blue-500/30'
+                  : 'bg-[#0D1117] text-[#8B949E] border-[#30363D]'
+              }`}
+              title="Bật/Tắt Volume Sub-series"
+            >
+              <BarChart2 size={13} />
+              <span className="hidden md:inline">Vol</span>
+            </button>
 
-          {/* Toggle SL/TP lines */}
-          <button
-            onClick={() => setShowSignalLines((prev) => !prev)}
-            className={`p-1.5 px-2 rounded-lg text-xs font-semibold flex items-center gap-1 border transition-colors ${
-              showSignalLines
-                ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                : 'bg-[#0D1117] text-[#8B949E] border-[#30363D]'
-            }`}
-            title="Bật/Tắt đường dóng Entry / SL / TP"
-          >
-            <Layers size={13} />
-            <span className="hidden md:inline">Lines</span>
-          </button>
+            {/* Toggle SL/TP lines */}
+            <button
+              onClick={() => setShowSignalLines((prev) => !prev)}
+              className={`p-1.5 px-2 rounded-lg text-xs font-semibold flex items-center gap-1 border transition-colors ${
+                showSignalLines
+                  ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                  : 'bg-[#0D1117] text-[#8B949E] border-[#30363D]'
+              }`}
+              title="Bật/Tắt đường dóng Entry / SL / TP"
+            >
+              <Layers size={13} />
+              <span className="hidden md:inline">Lines</span>
+            </button>
 
-          {/* Fullscreen Button */}
-          <button
-            onClick={toggleFullscreen}
-            className={`p-1.5 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 border transition-colors ${
-              isFullscreen
-                ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40'
-                : 'bg-gradient-to-r from-blue-600/20 to-cyan-600/20 hover:from-blue-600/30 hover:to-cyan-600/30 text-cyan-300 border-cyan-500/40'
-            }`}
-            title={isFullscreen ? 'Thu nhỏ cửa sổ' : 'Mở toàn màn hình (Fullscreen Terminal)'}
-          >
-            {isFullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
-            <span className="hidden sm:inline">
-              {isFullscreen ? 'Thu nhỏ' : 'Toàn màn hình'}
-            </span>
-          </button>
+            {/* Fullscreen Button */}
+            <button
+              onClick={toggleFullscreen}
+              className={`p-1.5 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 border transition-colors ${
+                isFullscreen
+                  ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40'
+                  : 'bg-gradient-to-r from-blue-600/20 to-cyan-600/20 hover:from-blue-600/30 hover:to-cyan-600/30 text-cyan-300 border-cyan-500/40'
+              }`}
+              title={isFullscreen ? 'Thu nhỏ cửa sổ' : 'Mở toàn màn hình (Fullscreen Terminal)'}
+            >
+              {isFullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+              <span className="hidden sm:inline">
+                {isFullscreen ? 'Thu nhỏ' : 'Toàn màn hình'}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* Hàng 2: Chi tiết nến OHLC & Biến động — chiều cao cố định h-7 (28px), luôn 1 dòng, không bao giờ giật layout */}
+        <div className="h-7 px-3.5 pb-1 flex items-center font-mono text-xs text-[#8B949E] overflow-x-auto whitespace-nowrap scrollbar-none">
+          {displayCandle ? (
+            <div className="flex items-center gap-x-3 gap-y-0 shrink-0">
+              <span>
+                O: <b className="text-white font-semibold">${formatSignalPrice(displayCandle.open)}</b>
+              </span>
+              <span>
+                H: <b className="text-[#089981] font-semibold">${formatSignalPrice(displayCandle.high)}</b>
+              </span>
+              <span>
+                L: <b className="text-[#F23645] font-semibold">${formatSignalPrice(displayCandle.low)}</b>
+              </span>
+              <span>
+                C: <b className={`font-semibold ${isUp ? 'text-[#089981]' : 'text-[#F23645]'}`}>${formatSignalPrice(displayCandle.close)}</b>
+              </span>
+              <span className={`font-semibold ${isUp ? 'text-[#089981]' : 'text-[#F23645]'}`}>
+                {isUp ? '+' : ''}${formatSignalPrice(deltaPrice)} ({isUp ? '+' : ''}{deltaPct.toFixed(2)}%)
+              </span>
+              {displayCandle.volume > 0 && (
+                <span className="text-cyan-300 hidden lg:inline">
+                  Vol: <b>{displayCandle.volume.toFixed(2)}</b>
+                </span>
+              )}
+            </div>
+          ) : (
+            <span className="text-[11px] text-[#484F58]">Đang tải dữ liệu nến Binance...</span>
+          )}
         </div>
       </div>
 

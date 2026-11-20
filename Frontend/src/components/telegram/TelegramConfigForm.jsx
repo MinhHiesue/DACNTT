@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Check, Send, ExternalLink } from 'lucide-react'
 
 // Nhận thêm prop userId (truyền từ App hoặc Context/Redux)
@@ -9,11 +9,26 @@ export function TelegramConfigForm({ connected, onConnectionChange, userId }) {
   const [feedback, setFeedback] = useState('')
   const [saved, setSaved] = useState(false)
 
-  // CẤU HÌNH BOT CỦA BẠN TẠI ĐÂY
-  const botUsername = "YourGoldSignalBot"; // Đổi thành username bot thật của bạn (không có @)
+  // Cấu hình bot thật
+  const botUsername = "DACNCNTN_bot"
   const telegramLink = userId 
     ? `https://t.me/${botUsername}?start=${userId}` 
-    : `https://t.me/${botUsername}`;
+    : `https://t.me/${botUsername}`
+
+  useEffect(() => {
+    fetch('http://localhost:8000/api/telegram/status')
+      .then(res => res.json())
+      .then(data => {
+        if (data.chat_id) {
+          setChatId(data.chat_id)
+          setSaved(true)
+          if (data.connected) {
+            onConnectionChange(true)
+          }
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   const handleConnectionChange = (value) => {
     onConnectionChange(value)
@@ -21,16 +36,52 @@ export function TelegramConfigForm({ connected, onConnectionChange, userId }) {
     setFeedback('')
   }
 
-  const sendTest = () => {
+  const sendTest = async () => {
     setSaved(false)
-    setFeedback(!connected
-      ? 'Vui lòng bật trạng thái Bot trước khi gửi thử.'
-      : 'Đã gửi lệnh test. Vui lòng kiểm tra Telegram của bạn.')
+    try {
+      const res = await fetch('http://localhost:8000/api/telegram/test-alert' + (chatId ? `?chat_id=${chatId.trim()}` : ''), {
+        method: 'POST'
+      })
+      const data = await res.json()
+      setFeedback(data.message || (data.success ? 'Đã gửi thành công!' : 'Gửi thất bại'))
+      if (data.success) setSaved(true)
+    } catch (err) {
+      setFeedback('Lỗi gọi API: ' + err.message)
+    }
   }
 
-  const saveConfiguration = () => {
-    setSaved(true)
-    setFeedback('Đã lưu cấu hình thông báo thành công.')
+  const saveConfiguration = async () => {
+    if (!chatId.trim()) {
+      setFeedback('Vui lòng nhập Chat ID hoặc bấm nút "Kết nối ngay với Telegram" ở trên.')
+      return
+    }
+
+    try {
+      // 1. Lưu vào Python FastAPI backend
+      const res = await fetch('http://localhost:8000/api/telegram/set-chat-id', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId.trim() })
+      })
+      const data = await res.json()
+
+      // 2. Lưu vào Node.js backend nếu có userId
+      if (userId) {
+        try {
+          await fetch('http://localhost:5000/api/link-telegram', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, telegramChatId: chatId.trim() })
+          })
+        } catch {}
+      }
+
+      setSaved(true)
+      onConnectionChange(true)
+      setFeedback(`✅ Đã kết nối thành công Chat ID: ${chatId.trim()}! Bot đã sẵn sàng nhận cảnh báo.`)
+    } catch (err) {
+      setFeedback('Lỗi lưu cấu hình: ' + err.message)
+    }
   }
 
   return (

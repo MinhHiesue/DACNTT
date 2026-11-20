@@ -12,6 +12,7 @@ import { PerformancePage } from './pages/PerformancePage.jsx'
 import { SettingsPage } from './pages/SettingsPage.jsx'
 import { TelegramPage } from './pages/TelegramPage.jsx'
 import { clearSession, getCurrentUser, loadSession, saveSession } from './data/authApi.js'
+import { TradeSetupProvider } from './context/TradeSetupContext.jsx'
 
 function RequireAuth({ session }) {
   const location = useLocation()
@@ -25,25 +26,27 @@ function RequireAdmin({ session }) {
 
 function RoutedPages({ session, onLogout }) {
   return (
-    <AppLayout user={session.user} onLogout={onLogout}>
-      {({ query, navigateToLabel, compactLayout, onCompactLayoutChange }) => (
-        <Routes>
-          <Route path="/" element={<Navigate to="/overview" replace />} />
-          <Route path="/overview" element={<DashboardPage onNavigate={navigateToLabel} query={query} />} />
-          <Route path="/market" element={<MarketAnalysisPage />} />
-          <Route path="/signals" element={<AISignalsPage query={query} />} />
-          <Route path="/history" element={<HistoryPage query={query} />} />
-          <Route path="/performance" element={<PerformancePage />} />
-          <Route path="/telegram" element={<TelegramPage />} />
-          <Route path="/settings" element={<SettingsPage compactLayout={compactLayout} onCompactLayoutChange={onCompactLayoutChange} />} />
-          <Route path="/help" element={<HelpPage onNavigate={navigateToLabel} />} />
-          <Route element={<RequireAdmin session={session} />}>
-            <Route path="/admin" element={<AdminPage token={session.token} currentUser={session.user} />} />
-          </Route>
-          <Route path="*" element={<Navigate to="/overview" replace />} />
-        </Routes>
-      )}
-    </AppLayout>
+    <TradeSetupProvider>
+      <AppLayout user={session.user} onLogout={onLogout}>
+        {({ query, navigateToLabel, compactLayout, onCompactLayoutChange }) => (
+          <Routes>
+            <Route path="/" element={<Navigate to="/overview" replace />} />
+            <Route path="/overview" element={<DashboardPage onNavigate={navigateToLabel} query={query} />} />
+            <Route path="/market" element={<MarketAnalysisPage />} />
+            <Route path="/signals" element={<AISignalsPage query={query} />} />
+            <Route path="/history" element={<HistoryPage query={query} />} />
+            <Route path="/performance" element={<PerformancePage />} />
+            <Route path="/telegram" element={<TelegramPage />} />
+            <Route path="/settings" element={<SettingsPage compactLayout={compactLayout} onCompactLayoutChange={onCompactLayoutChange} />} />
+            <Route path="/help" element={<HelpPage onNavigate={navigateToLabel} />} />
+            <Route element={<RequireAdmin session={session} />}>
+              <Route path="/admin" element={<AdminPage token={session.token} currentUser={session.user} />} />
+            </Route>
+            <Route path="*" element={<Navigate to="/overview" replace />} />
+          </Routes>
+        )}
+      </AppLayout>
+    </TradeSetupProvider>
   )
 }
 

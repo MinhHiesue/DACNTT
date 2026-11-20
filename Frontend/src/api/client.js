@@ -57,17 +57,19 @@ export async function fetchVolumeRegime(symbol = 'BTCUSDT') {
 }
 
 /**
- * Lấy tín hiệu giao dịch mới nhất được phê duyệt hoặc từ chối.
+ * Lấy tín hiệu giao dịch mới nhất được phê duyệt hoặc từ chối theo symbol.
  */
-export async function fetchLatestSignal() {
-  return await apiRequest(ENDPOINTS.SIGNALS_LATEST)
+export async function fetchLatestSignal(symbol = 'BTCUSDT') {
+  const url = `${ENDPOINTS.SIGNALS_LATEST}?symbol=${encodeURIComponent(symbol)}`
+  return await apiRequest(url)
 }
 
 /**
- * Kích hoạt quét mẫu hình tức thì trên nến M5 vừa đóng.
+ * Kích hoạt quét mẫu hình tức thì trên nến M5 vừa đóng theo symbol.
  */
-export async function scanLatestSignal() {
-  return await apiRequest(ENDPOINTS.SIGNALS_SCAN, { method: 'POST' })
+export async function scanLatestSignal(symbol = 'BTCUSDT') {
+  const url = `${ENDPOINTS.SIGNALS_SCAN}?symbol=${encodeURIComponent(symbol)}`
+  return await apiRequest(url, { method: 'POST' })
 }
 
 /**

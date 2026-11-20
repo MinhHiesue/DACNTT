@@ -45,6 +45,12 @@ def handle_start(message):
         logger.info(f"Nhận yêu cầu liên kết từ Telegram {username} (Chat ID: {chat_id}) cho User ID web: {user_id_from_web}")
         
         try:
+            # Đồng bộ Chat ID sang FastAPI server (Port 8000)
+            try:
+                requests.post("http://localhost:8000/api/telegram/set-chat-id", json={"chat_id": str(chat_id)}, timeout=5)
+            except Exception as e:
+                logger.warning(f"Chưa đồng bộ sang FastAPI port 8000: {e}")
+
             # Gọi HTTP POST về Backend Node.js
             payload = {
                 "userId": user_id_from_web,
@@ -71,10 +77,16 @@ def handle_start(message):
             
     # Kịch bản 2: Người dùng tự tìm bot trên Telegram và chat /start
     else:
+        try:
+            requests.post("http://localhost:8000/api/telegram/set-chat-id", json={"chat_id": str(chat_id)}, timeout=5)
+        except Exception:
+            pass
+
         bot.reply_to(
             message, 
-            "👋 <b>Chào mừng bạn đến với Hệ thống Cảnh báo Vàng AI!</b>\n\n"
-            "Để nhận thông báo, vui lòng truy cập website, đăng nhập và bấm vào nút <b>'Kết nối Telegram'</b>.",
+            f"👋 <b>Chào mừng bạn đến với Hệ thống Cảnh báo Vàng & BTC AI!</b>\n\n"
+            f"🆔 <b>Chat ID của bạn:</b> <code>{chat_id}</code>\n\n"
+            "Hệ thống đã nhận diện Telegram của bạn. Bạn cũng có thể dán Chat ID này vào trang cài đặt trên website.",
             parse_mode="HTML"
         )
 

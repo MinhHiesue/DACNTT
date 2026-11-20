@@ -6,6 +6,7 @@ import { OverviewStats } from '../components/dashboard/OverviewStats.jsx'
 import { RecentSignalsCard } from '../components/dashboard/RecentSignalsCard.jsx'
 import { SystemActivitySection } from '../components/dashboard/SystemActivitySection.jsx'
 import { VolumeRegimeGauge } from '../components/market/VolumeRegimeGauge.jsx'
+import { ContinuousRadarHud } from '../components/common/ContinuousRadarHud.jsx'
 import { useMarketData } from '../hooks/useMarketData.js'
 
 export function DashboardPage({ onNavigate, query }) {
@@ -16,6 +17,9 @@ export function DashboardPage({ onNavigate, query }) {
     <>
       <DashboardHeading asset={asset} setAsset={setAsset} />
       
+      {/* Background Auto-Scan Radar 24/7 & Cảnh báo tức thì */}
+      <ContinuousRadarHud onNavigate={onNavigate} />
+
       {/* Volume Regime Filter Gauge Widget (TASK-05) */}
       <section className="mb-6">
         <VolumeRegimeGauge volumeRegime={volumeRegime} />

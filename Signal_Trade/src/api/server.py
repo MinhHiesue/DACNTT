@@ -1,4 +1,5 @@
 """FastAPI backend server and Data Bridge for Dashboard."""
+import os
 import time
 import asyncio
 from datetime import datetime, timezone
@@ -9,6 +10,7 @@ import numpy as np
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from loguru import logger
 
 from src.core.config_loader import load_config
@@ -127,6 +129,23 @@ class AppState:
         self.latest_signal: Optional[TradeSignalResponse] = None
         self.signals_history: List[TradeSignalResponse] = []
         self.connected_websockets: List[WebSocket] = []
+        # Quản lý tối đa 2 setup: 1 XAUUSDT, 1 BTCUSDT. Mỗi mã duy nhất 1 setup
+        self.active_setups: Dict[str, Any] = {}
+
+        # Tự động nạp sẵn lịch sử tín hiệu phục vụ thuyết trình / demo
+        history_file = Path(__file__).resolve().parent.parent.parent / "reports" / "presentation_signals_history.json"
+        if history_file.exists():
+            try:
+                import json
+                with open(history_file, "r", encoding="utf-8") as f:
+                    history_data = json.load(f)
+                    for item in history_data:
+                        self.signals_history.append(TradeSignalResponse(**item))
+                    if self.signals_history:
+                        self.latest_signal = self.signals_history[0]
+                logger.info(f"API Server: Đã nạp thành công {len(self.signals_history)} tín hiệu thuyết trình mẫu.")
+            except Exception as e:
+                logger.warning(f"Lỗi khi nạp dữ liệu tín hiệu thuyết trình: {e}")
 
     def add_signal(self, sig: TradeSignal) -> TradeSignalResponse:
         ts_unix = int(sig.timestamp.timestamp())
@@ -277,25 +296,36 @@ def get_volume_regime(symbol: str = "XAUUSDT"):
 
 
 @app.get("/api/signals/latest", response_model=Optional[TradeSignalResponse])
-def get_latest_signal():
-    """Lấy tín hiệu giao dịch mới nhất."""
+def get_latest_signal(symbol: Optional[str] = Query(None)):
+    """Lấy tín hiệu giao dịch mới nhất (Hỗ trợ theo mã XAUUSDT hoặc BTCUSDT)."""
+    sym = (symbol or state.config.binance.symbol).upper()
     if state.latest_signal is None:
-        # Nếu chưa có tín hiệu trong bộ nhớ, tự động quét 1 lần từ nến vừa đóng
-        scan_latest_signal()
+        scan_latest_signal(symbol=sym)
     return state.latest_signal
 
 
 @app.post("/api/signals/scan", response_model=TradeSignalResponse)
-def scan_latest_signal():
-    """Chạy quét mẫu hình trên nến M5 vừa đóng từ Binance."""
+def scan_latest_signal(symbol: Optional[str] = Query(None)):
+    """
+    Chạy quét mẫu hình trên nến M5 vừa đóng từ Binance.
+    QUY TẮC: 1 thời điểm chỉ có 1 setup trên mỗi mã. Nếu đang có setup live, trả về setup hiện tại.
+    """
+    sym = (symbol or state.config.binance.symbol).upper()
+
+    # Kiểm tra nếu mã này đã có setup đang theo dõi, không sinh signal đối lập
+    if sym in state.active_setups and state.active_setups[sym].get("status") in ["FOLLOWING", "PENDING_APPROVAL"]:
+        logger.info(f"Mã {sym} đã có setup đang hoạt động. Giữ vững kỷ luật 1 mã 1 setup.")
+        if state.latest_signal:
+            return state.latest_signal
+
     try:
         df = state.binance_loader.fetch_recent_bars(
-            symbol=state.config.binance.symbol,
+            symbol=sym,
             interval=state.config.binance.interval,
             count=105
         )
         if len(df) < 50:
-            raise ValueError("Chưa đủ nến để trích xuất đặc trưng 49D.")
+            raise ValueError(f"Chưa đủ nến cho {sym} để trích xuất đặc trưng 49D.")
 
         # Lấy các nến đã đóng
         df_closed = df.iloc[:-1].copy()
@@ -306,7 +336,7 @@ def scan_latest_signal():
             now = datetime.now(timezone.utc)
             dummy_signal = TradeSignal(
                 timestamp=now,
-                symbol=state.config.binance.symbol,
+                symbol=sym,
                 direction="NONE",
                 entry_price=float(df_closed.iloc[-1]['close']),
                 stop_loss=0.0,
@@ -336,12 +366,21 @@ def scan_latest_signal():
         signal = state.risk_manager.evaluate_signal(
             match_result=match_res,
             setup_bars=setup_15,
-            symbol=state.config.binance.symbol
+            symbol=sym
         )
 
-        return state.add_signal(signal)
+        res_sig = state.add_signal(signal)
+        # Lưu vào danh sách active setups
+        state.active_setups[sym] = {
+            "id": res_sig.id,
+            "symbol": sym,
+            "direction": res_sig.direction,
+            "entry_price": res_sig.entry_price,
+            "status": "PENDING_APPROVAL"
+        }
+        return res_sig
     except Exception as e:
-        logger.error(f"Lỗi khi quét tín hiệu nến đóng: {e}")
+        logger.error(f"Lỗi khi quét tín hiệu nến đóng {sym}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -480,11 +519,71 @@ def get_performance_trades(
         return PerformanceTradesResponse(total=0, trades=[])
 
 
+@app.get("/api/telegram/status")
+def get_telegram_status():
+    """Lấy thông tin trạng thái Telegram Bot và Chat ID hiện tại."""
+    token = os.getenv("TELEGRAM_BOT_TOKEN", "")
+    bot_configured = bool(token and token != "mock")
+    chat_id = getattr(state.telegram_bot, 'chat_id', None) or os.getenv("TELEGRAM_CHAT_ID", "")
+    is_active = bool(bot_configured and chat_id and chat_id != "12345678")
+    return {
+        "bot_configured": bot_configured,
+        "bot_username": "DACNCNTN_bot",
+        "chat_id": chat_id if chat_id != "12345678" else "",
+        "is_active": is_active,
+        "connected": is_active
+    }
+
+
+class TelegramSetChatIdRequest(BaseModel):
+    chat_id: str
+
+@app.post("/api/telegram/set-chat-id")
+def set_telegram_chat_id(req: TelegramSetChatIdRequest):
+    """Cập nhật Chat ID Telegram và áp dụng ngay lập tức."""
+    cid = req.chat_id.strip()
+    if not cid:
+        raise HTTPException(status_code=400, detail="chat_id không được để trống")
+
+    if state.telegram_bot:
+        state.telegram_bot.chat_id = cid
+
+    # Cập nhật vào cả 2 file .env
+    for env_rel in [Path("config/.env"), Path(".env")]:
+        env_file = Path(__file__).resolve().parent.parent.parent / env_rel
+        if env_file.exists():
+            try:
+                lines = env_file.read_text(encoding="utf-8").splitlines()
+                new_lines = []
+                found = False
+                for line in lines:
+                    if line.startswith("TELEGRAM_CHAT_ID="):
+                        new_lines.append(f"TELEGRAM_CHAT_ID={cid}")
+                        found = True
+                    else:
+                        new_lines.append(line)
+                if not found:
+                    new_lines.append(f"TELEGRAM_CHAT_ID={cid}")
+                env_file.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
+            except Exception as e:
+                logger.warning(f"Lỗi ghi .env {env_rel}: {e}")
+
+    logger.success(f"Đã cập nhật Telegram Chat ID: {cid}")
+    return {"success": True, "chat_id": cid, "message": "Đã cập nhật Telegram Chat ID thành công"}
+
+
 @app.post("/api/telegram/test-alert", response_model=TelegramTestResponse)
-def send_telegram_test_alert():
+def send_telegram_test_alert(chat_id: Optional[str] = Query(None)):
     """Gửi cảnh báo thử nghiệm có kèm ảnh biểu đồ snapshot qua Telegram Bot."""
     try:
         now = datetime.now(timezone.utc)
+        target_chat_id = chat_id or getattr(state.telegram_bot, 'chat_id', None) or os.getenv("TELEGRAM_CHAT_ID")
+        if not target_chat_id:
+            return TelegramTestResponse(
+                success=False,
+                message="Chưa có TELEGRAM_CHAT_ID. Vui lòng nhập Chat ID trên web hoặc gửi /start cho bot @DACNCNTN_bot."
+            )
+
         test_signal = TradeSignal(
             timestamp=now,
             symbol=state.config.binance.symbol,
@@ -508,16 +607,16 @@ def send_telegram_test_alert():
             count=15
         )
 
-        sent = state.telegram_bot.send_signal_alert(test_signal, setup_bars=df)
+        sent = state.telegram_bot.send_signal_alert(test_signal, chat_ids=[str(target_chat_id)], setup_bars=df)
         if sent:
             return TelegramTestResponse(
                 success=True,
-                message="Đã gửi thành công tin nhắn HTML kèm biểu đồ snapshot tới Telegram!"
+                message=f"Đã gửi thành công tin nhắn HTML kèm biểu đồ snapshot tới Telegram Chat ID: {target_chat_id}!"
             )
         else:
             return TelegramTestResponse(
                 success=False,
-                message="Chưa cấu hình TELEGRAM_BOT_TOKEN hoặc TELEGRAM_CHAT_ID trong .env. (Đã log mô phỏng ra console)."
+                message="Gửi thất bại. Hãy kiểm tra kết nối mạng hoặc đảm bảo bạn đã bấm /start với bot @DACNCNTN_bot."
             )
     except Exception as e:
         logger.error(f"Lỗi gửi Telegram test alert: {e}")
@@ -553,6 +652,75 @@ async def get_xgboost_metrics():
         top_features=top_feats,
         model_path=model_path
     )
+
+
+# =====================================================================
+# BACKGROUND CONTINUOUS SCANNER (RADAR TỰ ĐỘNG QUÉT LIÊN TỤC M5)
+# =====================================================================
+
+async def background_continuous_scanner():
+    """
+    Vòng lặp tự động quét nến M5 liên tục trong nền cho cả BTCUSDT và XAUUSDT.
+    Không cần người dùng bấm, bot liên tục theo dõi nến Binance.
+    - Mỗi 30 giây quét 1 lần (M5 candle = 5 phút, không cần quét dày hơn 30s)
+    - Chỉ gửi WebSocket khi thực sự phát hiện APPROVED signal mới
+    - Không gửi lặp nếu symbol đã có setup đang theo dõi
+    """
+    logger.info("📡 Khởi động Radar quét nến tự động liên tục (Background Auto-Scanner M5)...")
+    await asyncio.sleep(5)  # Chờ hệ thống khởi động xong
+
+    last_sent: Dict[str, str] = {}  # Lưu signal_id cuối gửi cho mỗi symbol, tránh gửi trùng
+
+    while True:
+        try:
+            for sym in ["BTCUSDT", "XAUUSDT"]:
+                # Tuân thủ nguyên tắc: 1 mã chỉ có 1 setup duy nhất
+                if sym in state.active_setups and state.active_setups[sym].get("status") in ["FOLLOWING", "PENDING_APPROVAL"]:
+                    continue
+
+                sig = scan_latest_signal(symbol=sym)
+                if sig and sig.status == "APPROVED" and sig.direction != "NONE":
+                    # Tránh gửi trùng signal cùng ID
+                    if last_sent.get(sym) == sig.id:
+                        continue
+
+                    logger.success(f"🚨 RADAR PHÁT HIỆN SETUP A+ ({sym}): {sig.direction} @ {sig.entry_price}")
+                    last_sent[sym] = sig.id
+
+                    # Lưu vào active_setups để không quét lại ngay
+                    state.active_setups[sym] = {
+                        "id": sig.id,
+                        "symbol": sym,
+                        "direction": sig.direction,
+                        "entry_price": sig.entry_price,
+                        "status": "PENDING_APPROVAL"
+                    }
+
+                    import json
+                    payload = json.dumps({
+                        "type": "NEW_APPROVED_SETUP",
+                        "signal": sig.dict()
+                    })
+                    for ws in list(state.connected_websockets):
+                        try:
+                            await ws.send_text(payload)
+                        except Exception:
+                            pass
+                else:
+                    # Signal REJECTED: xóa khỏi active_setups nếu đang pending
+                    if sym in state.active_setups and state.active_setups[sym].get("status") == "PENDING_APPROVAL":
+                        # Chỉ xóa nếu signal mới khác với ID đang pending
+                        pass  # Không xóa tự động từ backend, để frontend tự quản lý
+
+        except Exception as e:
+            logger.debug(f"Radar scanner error: {e}")
+
+        await asyncio.sleep(30)  # Quét mỗi 30 giây — M5 candle đóng mỗi 5 phút, 30s là hợp lý
+
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(background_continuous_scanner())
 
 
 # =====================================================================

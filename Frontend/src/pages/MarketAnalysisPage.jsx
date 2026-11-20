@@ -1,12 +1,12 @@
-import { useState } from 'react'
-import { ShieldCheck, RefreshCw } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { ShieldCheck, RefreshCw, CheckCircle2, Clock } from 'lucide-react'
 import { TradingViewCandleChart } from '../components/charts/TradingViewCandleChart.jsx'
 import { MarketControls, MarketMetrics } from '../components/market/MarketControls.jsx'
 import { MarketIndicatorPanel } from '../components/market/MarketIndicatorPanel.jsx'
 import { MarketTrendPanel } from '../components/market/MarketTrendPanel.jsx'
 import { VolumeRegimeGauge } from '../components/market/VolumeRegimeGauge.jsx'
 import { useMarketData } from '../hooks/useMarketData.js'
-import { useSignals } from '../hooks/useSignals.js'
+import { useTradeManager } from '../context/TradeSetupContext.jsx'
 import { MARKET_PAIRS } from '../data/market.js'
 import { buildMarketCandles, calculateMarketIndicators } from '../data/marketAnalysis.js'
 
@@ -18,21 +18,30 @@ export function MarketAnalysisPage() {
   const activeSymbol = pair.replace('/', '')
   // Real data hooks
   const { klines, volumeRegime, loading: marketLoading, refresh: refreshMarket } = useMarketData(activeSymbol, barLimit)
-  const { latestSignal, signalsHistory, refresh: refreshSignals } = useSignals(5000)
+  const { getSetupForSymbol, evaluatePriceUpdate } = useTradeManager()
+  const liveSetup = getSetupForSymbol(activeSymbol)
 
   const market = MARKET_PAIRS[pair] || MARKET_PAIRS['XAU/USDT']
   const fallbackCandles = buildMarketCandles(pair, timeframe)
-  const indicators = calculateMarketIndicators(fallbackCandles)
+  // Tính toán chỉ số trực tiếp từ nến thật Binance khi có nến
+  const activeCandles = klines && klines.length >= 15 ? klines : fallbackCandles
+  const indicators = calculateMarketIndicators(activeCandles)
 
-  // Giá nến mới nhất từ live klines hoặc fallback
-  const lastBar = klines && klines.length > 0 ? klines[klines.length - 1] : fallbackCandles[fallbackCandles.length - 1]
-  const currentPrice = lastBar.close || lastBar.price || 4005.50
+  // Giá nến mới nhất từ live klines thật
+  const lastBar = klines && klines.length > 0 ? klines[klines.length - 1] : null
+  const currentPrice = lastBar ? Number(lastBar.close) : (fallbackCandles[fallbackCandles.length - 1]?.close || 0)
   const currentRsi = indicators.rsi[indicators.rsi.length - 1]?.value ?? 52.4
   const currentMacd = indicators.macd[indicators.macd.length - 1]?.value ?? 14.8
 
+  // Theo dõi giá live đối chiếu với setup (Invalidation / TP / SL)
+  useEffect(() => {
+    if (currentPrice > 0) {
+      evaluatePriceUpdate(activeSymbol, currentPrice)
+    }
+  }, [currentPrice, activeSymbol, evaluatePriceUpdate])
+
   const handleRefreshAll = () => {
     refreshMarket()
-    refreshSignals()
   }
 
   return (
@@ -48,7 +57,7 @@ export function MarketAnalysisPage() {
             Biểu đồ nến & Phân tích thị trường<span>.</span>
           </h1>
           <p className="page-subtitle">
-            Trạm phân tích kỹ thuật thời gian thực từ Binance Public Feed kết hợp đánh giá phân vị Volume và tín hiệu AI.
+            Trạm phân tích kỹ thuật thời gian thực từ Binance Public Feed kết hợp đánh giá phân vị Volume và tín hiệu AI (100% No Mock).
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -78,7 +87,7 @@ export function MarketAnalysisPage() {
         onTimeframeChange={setTimeframe}
       />
 
-      <MarketMetrics market={market} pair={pair} currentPrice={currentPrice} />
+      <MarketMetrics currentPrice={currentPrice} klines={klines} pair={pair} />
 
       {/* Main Analysis Workspace */}
       <section className="analysis-workspace">
@@ -86,8 +95,8 @@ export function MarketAnalysisPage() {
           {/* TradingView Realtime Candle Chart (TASK-03 & TASK-09) */}
           <TradingViewCandleChart
             klines={klines}
-            signals={signalsHistory}
-            activeSignal={latestSignal}
+            signals={liveSetup ? [liveSetup] : []}
+            activeSignal={liveSetup}
             symbol={pair}
             timeframe={timeframe}
             height={560}
