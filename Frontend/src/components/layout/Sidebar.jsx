@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   Settings2,
   Signal,
+  UsersRound,
   X,
 } from 'lucide-react'
 import { NavLink, useNavigate } from 'react-router-dom'
@@ -35,8 +36,14 @@ const navGroups = [
   },
 ]
 
-export function Sidebar({ mobileNav, onClose }) {
+const adminGroup = {
+  title: 'QUẢN TRỊ',
+  items: [{ label: 'Quản lý tài khoản', path: '/admin', icon: UsersRound }],
+}
+
+export function Sidebar({ mobileNav, onClose, user }) {
   const navigate = useNavigate()
+  const groups = user?.role === 'admin' ? [...navGroups, adminGroup] : navGroups
 
   return (
     <>
@@ -53,7 +60,7 @@ export function Sidebar({ mobileNav, onClose }) {
           <ChevronDown size={15} />
         </button>
         <div className="nav-area">
-          {navGroups.map((group) => (
+          {groups.map((group) => (
             <section className="nav-group" key={group.title}>
               <div className="nav-heading">{group.title}</div>
               {group.items.map(({ label, path, icon: Icon, count, status }) => (

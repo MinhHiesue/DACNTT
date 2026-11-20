@@ -18,6 +18,15 @@ const userSchema = new mongoose.Schema({
     maxlength: [254, 'Email không hợp lệ'],
     match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Email không hợp lệ'],
   },
+  role: {
+    type: String,
+    enum: ['user', 'admin'],
+    default: 'user',
+  },
+  isActive: {
+    type: Boolean,
+    default: true,
+  },
   passwordHash: {
     type: String,
     required: true,

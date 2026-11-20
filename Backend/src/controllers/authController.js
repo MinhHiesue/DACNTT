@@ -6,6 +6,8 @@ function toPublicUser(user) {
     id: user._id,
     name: user.name,
     email: user.email,
+    role: user.role ?? 'user',
+    isActive: user.isActive !== false,
   }
 }
 
@@ -56,6 +58,13 @@ export async function login(req, res) {
     return res.status(401).json({
       success: false,
       message: 'Email hoặc mật khẩu không chính xác.',
+    })
+  }
+
+  if (user.isActive === false) {
+    return res.status(403).json({
+      success: false,
+      message: 'Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.',
     })
   }
 

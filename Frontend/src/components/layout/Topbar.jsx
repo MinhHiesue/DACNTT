@@ -11,6 +11,7 @@ const PAGE_TITLES = {
   '/telegram': 'Telegram Bot',
   '/settings': 'Cài đặt',
   '/help': 'Trung tâm trợ giúp',
+  '/admin': 'Quản lý tài khoản',
 }
 
 export function Topbar({ pathname, query, onQueryChange, onMenuOpen, user, onLogout }) {

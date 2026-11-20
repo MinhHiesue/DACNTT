@@ -8,7 +8,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "seed": "node scripts/seedSignals.js"
+    "seed": "node scripts/seedSignals.js",
+    "admin:promote": "node scripts/promoteAdmin.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

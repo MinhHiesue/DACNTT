@@ -16,9 +16,11 @@ $RootDir = $PSScriptRoot
 $BackendDir = Join-Path $RootDir "Signal_Trade"
 $FrontendDir = Join-Path $RootDir "Frontend"
 if (-not (Test-Path $FrontendDir)) { $FrontendDir = Join-Path $RootDir "ĐACN" }
+$AuthBackendDir = Join-Path $RootDir "Backend"
 
 $BackendProcess = $null
 $FrontendProcess = $null
+$AuthBackendProcess = $null
 
 try {
     # 1. Xác định đường dẫn Python trong venv
@@ -33,7 +35,7 @@ try {
 
     # 2. Khởi chạy Backend FastAPI Server
     Write-Host ""
-    Write-Host "[1/3] 🔌 Đang khởi động Backend API (FastAPI) trên cổng 8000..." -ForegroundColor Cyan
+    Write-Host "[1/4] 🔌 Đang khởi động Backend API (FastAPI) trên cổng 8000..." -ForegroundColor Cyan
     $BackendProcess = Start-Process -FilePath $PythonExe `
         -ArgumentList "-m uvicorn src.api.server:app --host 0.0.0.0 --port 8000" `
         -WorkingDirectory $BackendDir `
@@ -42,9 +44,20 @@ try {
     Write-Host "      Backend PID: $($BackendProcess.Id) -> http://localhost:8000" -ForegroundColor Green
     Start-Sleep -Seconds 2
 
+    # Khởi chạy Express API phục vụ đăng ký và đăng nhập
+    Write-Host ""
+    Write-Host "[2/4] 🔐 Đang khởi động Auth API (Express) trên cổng 5000..." -ForegroundColor Cyan
+    $AuthBackendProcess = Start-Process -FilePath "npm.cmd" `
+        -ArgumentList "run dev" `
+        -WorkingDirectory $AuthBackendDir `
+        -PassThru
+
+    Write-Host "      Auth Backend PID: $($AuthBackendProcess.Id) -> http://localhost:5000" -ForegroundColor Green
+    Start-Sleep -Seconds 2
+
     # 3. Khởi chạy Frontend Vite Dev Server
     Write-Host ""
-    Write-Host "[2/3] 💻 Đang khởi động Frontend Dashboard (Vite) trên cổng 5173..." -ForegroundColor Cyan
+    Write-Host "[3/4] 💻 Đang khởi động Frontend Dashboard (Vite) trên cổng 5173..." -ForegroundColor Cyan
     $FrontendProcess = Start-Process -FilePath "npm.cmd" `
         -ArgumentList "run dev" `
         -WorkingDirectory $FrontendDir `
@@ -55,7 +68,7 @@ try {
 
     # 4. Mở trình duyệt web
     Write-Host ""
-    Write-Host "[3/3] 🌐 Đang mở trình duyệt tới Dashboard..." -ForegroundColor Green
+    Write-Host "[4/4] 🌐 Đang mở trình duyệt tới Dashboard..." -ForegroundColor Green
     Start-Process "http://localhost:5173"
 
     Write-Host ""
@@ -94,6 +107,11 @@ try {
     if ($FrontendProcess -and -not $FrontendProcess.HasExited) {
         Stop-Process -Id $FrontendProcess.Id -Force -ErrorAction SilentlyContinue
         Write-Host "✔ Đã tắt Frontend Vite (PID $($FrontendProcess.Id))." -ForegroundColor DarkGray
+    }
+
+    if ($AuthBackendProcess -and -not $AuthBackendProcess.HasExited) {
+        Stop-Process -Id $AuthBackendProcess.Id -Force -ErrorAction SilentlyContinue
+        Write-Host "✔ Đã tắt Auth API (PID $($AuthBackendProcess.Id))." -ForegroundColor DarkGray
     }
 
     Write-Host "Hệ thống đã dừng an toàn. Hẹn gặp lại!" -ForegroundColor Green

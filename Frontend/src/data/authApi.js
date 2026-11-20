@@ -29,6 +29,53 @@ export async function getCurrentUser(token) {
   return result.data.user
 }
 
+async function adminRequest(path, token, options = {}) {
+  const response = await fetch(`${API_URL}/api/admin${path}`, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+      ...options.headers,
+    },
+  })
+  const result = await response.json()
+
+  if (!response.ok) {
+    throw Object.assign(new Error(result.message || 'Không thể thực hiện thao tác quản trị.'), { status: response.status })
+  }
+
+  return result.data
+}
+
+export function getAdminUsers(token, filters, signal) {
+  const params = new URLSearchParams({
+    page: String(filters.page),
+    pageSize: '20',
+    search: filters.search,
+    role: filters.role,
+    status: filters.status,
+  })
+  return adminRequest(`/users?${params}`, token, { signal })
+}
+
+export function updateAdminUserRole(token, userId, role) {
+  return adminRequest(`/users/${encodeURIComponent(userId)}/role`, token, {
+    method: 'PATCH',
+    body: JSON.stringify({ role }),
+  })
+}
+
+export function updateAdminUserStatus(token, userId, isActive) {
+  return adminRequest(`/users/${encodeURIComponent(userId)}/status`, token, {
+    method: 'PATCH',
+    body: JSON.stringify({ isActive }),
+  })
+}
+
+export function deleteAdminUser(token, userId) {
+  return adminRequest(`/users/${encodeURIComponent(userId)}`, token, { method: 'DELETE' })
+}
+
 export function saveSession(session) {
   localStorage.setItem(SESSION_KEY, JSON.stringify(session))
 }

@@ -742,6 +742,38 @@ h1 { font-size: 32px; font-weight: 700; }
 .history-layout { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(265px, .8fr); gap: 12px; align-items: start; }
 .utility-table-panel { min-width: 0; padding: 0; border-top: 2px solid #45baff; }
 .utility-table-scroll { width: 100%; overflow-x: auto; }
+.admin-toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 9px; margin-bottom: 12px; }
+.admin-search, .admin-filter { display: flex; flex-direction: column; gap: 5px; color: #82919a; font-size: 7px; font-weight: 700; letter-spacing: .5px; }
+.admin-search { flex: 1 1 220px; }
+.admin-search > div { display: flex; height: 32px; align-items: center; gap: 7px; padding: 0 8px; border: 1px solid #334752; color: #788891; background: #0c141a; }
+.admin-search input { width: 100%; border: 0; outline: 0; color: #d8e1e5; background: transparent; font-family: "Rajdhani", sans-serif; font-size: 12px; }
+.admin-filter select { min-width: 132px; height: 32px; padding: 0 8px; border: 1px solid #334752; color: #cbd6db; background: #101b23; font-family: "Rajdhani", sans-serif; font-size: 12px; }
+.admin-users-table { width: 100%; min-width: 850px; border-collapse: collapse; text-align: left; }
+.admin-users-table thead { background: #101a21; }
+.admin-users-table th { height: 34px; padding: 0 10px; border-bottom: 1px solid #2b3b45; color: #7e8e97; font-size: 7px; font-weight: 700; letter-spacing: .55px; white-space: nowrap; }
+.admin-users-table td { min-height: 48px; padding: 8px 10px; border-bottom: 1px solid #1d2a32; color: #aab8bf; font-size: 10px; white-space: nowrap; }
+.admin-users-table td:first-child { min-width: 180px; }
+.admin-user-name, .admin-user-email, .admin-self-label { display: block; }
+.admin-user-name { color: #dce5e9; font-size: 11px; }
+.admin-user-email { margin-top: 2px; color: #788891; font-size: 9px; }
+.admin-self-label { margin-top: 4px; color: #65c9f5; font-size: 7px; font-weight: 700; letter-spacing: .4px; }
+.admin-role-badge, .admin-status-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px; border: 1px solid #344650; color: #a9bac2; font-size: 8px; text-transform: uppercase; }
+.admin-role-admin { border-color: #3a6581; color: #8bd6ff; }
+.admin-status-badge i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.admin-status-active { border-color: #315a46; color: #7ad8a8; }
+.admin-status-locked { border-color: #68433e; color: #ff9588; }
+.admin-row-actions { display: flex; align-items: center; gap: 5px; }
+.admin-action-button, .admin-delete-button { display: inline-flex; min-height: 26px; align-items: center; justify-content: center; gap: 4px; padding: 0 7px; border: 1px solid #334650; color: #a9bac2; background: #101a21; font-size: 8px; }
+.admin-action-button:hover:not(:disabled) { border-color: #3d82a4; color: #9cddfb; }
+.admin-delete-button { border-color: #583a38; color: #ff9588; }
+.admin-delete-button:hover:not(:disabled) { border-color: #9a5149; background: #271a19; }
+.admin-action-button:disabled, .admin-delete-button:disabled { cursor: not-allowed; opacity: .45; }
+.admin-table-message { height: 90px; color: #83929a !important; text-align: center; }
+.admin-pagination { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 40px; padding: 4px 12px; color: #7f8e96; font-size: 9px; }
+.admin-pagination > div { display: flex; gap: 5px; }
+.admin-pagination button { display: grid; width: 27px; height: 25px; place-items: center; border: 1px solid #334650; color: #b7c5cb; background: #101a21; }
+.admin-pagination button:disabled { cursor: not-allowed; opacity: .4; }
+.admin-caution { margin: 10px 0 0; color: #75848c; font-size: 9px; line-height: 1.5; }
 .history-detail { padding: 15px; border-top: 2px solid #ff705e; }
 .history-detail h2 { margin: 4px 0 10px; color: #e5ecef; font-family: "Rajdhani", sans-serif; font-size: 20px; }
 .history-detail-values { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 14px; }

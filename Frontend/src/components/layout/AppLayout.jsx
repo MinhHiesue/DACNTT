@@ -23,13 +23,14 @@ export function AppLayout({ children, user, onLogout }) {
       'Telegram Bot': '/telegram',
       'Cài đặt': '/settings',
       'Trung tâm trợ giúp': '/help',
+      'Quản lý tài khoản': '/admin',
     }[label]
     if (route) navigate(route)
   }
 
   return (
     <div className={`app-shell ${compactLayout ? 'compact-layout' : ''}`}>
-      <Sidebar mobileNav={mobileNav} onClose={() => setMobileNav(false)} />
+      <Sidebar mobileNav={mobileNav} onClose={() => setMobileNav(false)} user={user} />
       <main className="main-column">
         <Topbar pathname={pathname} query={query} onQueryChange={setQuery} onMenuOpen={() => setMobileNav(true)} user={user} onLogout={onLogout} />
         <div className="page-content">{children({ query, navigateToLabel, compactLayout, onCompactLayoutChange: updateCompactLayout })}</div>

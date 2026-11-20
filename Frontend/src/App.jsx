@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import { AppLayout } from './components/layout/AppLayout.jsx'
 import { AISignalsPage } from './pages/AISignalsPage.jsx'
+import { AdminPage } from './pages/AdminPage.jsx'
 import { AuthPage } from './pages/AuthPage.jsx'
 import { DashboardPage } from './pages/DashboardPage.jsx'
 import { HelpPage } from './pages/HelpPage.jsx'
@@ -18,6 +19,10 @@ function RequireAuth({ session }) {
   return session ? <Outlet /> : <Navigate to="/login" replace state={{ from: location }} />
 }
 
+function RequireAdmin({ session }) {
+  return session.user.role === 'admin' ? <Outlet /> : <Navigate to="/overview" replace />
+}
+
 function RoutedPages({ session, onLogout }) {
   return (
     <AppLayout user={session.user} onLogout={onLogout}>
@@ -32,6 +37,9 @@ function RoutedPages({ session, onLogout }) {
           <Route path="/telegram" element={<TelegramPage />} />
           <Route path="/settings" element={<SettingsPage compactLayout={compactLayout} onCompactLayoutChange={onCompactLayoutChange} />} />
           <Route path="/help" element={<HelpPage onNavigate={navigateToLabel} />} />
+          <Route element={<RequireAdmin session={session} />}>
+            <Route path="/admin" element={<AdminPage token={session.token} currentUser={session.user} />} />
+          </Route>
           <Route path="*" element={<Navigate to="/overview" replace />} />
         </Routes>
       )}

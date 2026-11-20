@@ -12,7 +12,6 @@ export function AuthPage({ mode, onAuthenticated }) {
   const navigate = useNavigate()
   const location = useLocation()
   const isRegister = mode === 'register'
-
   async function handleSubmit(event) {
     event.preventDefault()
     setError('')

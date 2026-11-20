@@ -60,6 +60,25 @@ Content-Type: application/json
 
 Mật khẩu phải có ít nhất 8 ký tự và tối đa 72 byte UTF-8 (giới hạn của bcrypt). Server chỉ lưu mật khẩu đã băm; email đã đăng ký trả `409`.
 
+Tài khoản đăng ký mới luôn có role `user` và trạng thái hoạt động. Chỉ admin mới được gọi API quản trị hoặc mở trang `/admin`.
+
+### Phân quyền và quản lý tài khoản
+
+Sau khi đã đăng ký tài khoản muốn dùng làm admin, chạy lệnh một lần từ thư mục `Backend`:
+
+```bash
+npm run admin:promote -- admin@example.com
+```
+
+Lệnh yêu cầu tài khoản tồn tại và đang hoạt động. Đăng xuất rồi đăng nhập lại để giao diện tải role mới. Admin có thể tìm kiếm tài khoản, cấp/hạ quyền, khóa/mở khóa hoặc xóa tài khoản. Không thể tự khóa, tự xóa, tự hạ quyền, hoặc khóa/hạ quyền/xóa admin đang hoạt động cuối cùng. API cũng kiểm tra quyền ở backend; ẩn trang trên frontend không phải là lớp bảo vệ duy nhất.
+
+Các endpoint quản trị:
+
+- `GET /api/admin/users`: danh sách có phân trang; hỗ trợ `search`, `role=user|admin`, `status=active|locked`.
+- `PATCH /api/admin/users/:userId/role`: body `{ "role": "user" | "admin" }`.
+- `PATCH /api/admin/users/:userId/status`: body `{ "isActive": true | false }`.
+- `DELETE /api/admin/users/:userId`: xóa tài khoản vĩnh viễn.
+
 ### Đăng nhập
 
 ```http

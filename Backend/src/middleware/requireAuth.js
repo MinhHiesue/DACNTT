@@ -23,7 +23,18 @@ export async function requireAuth(req, res, next) {
       })
     }
 
-    req.user = user
+    if (user.isActive === false) {
+      return res.status(401).json({
+        success: false,
+        message: 'Tài khoản đã bị khóa.',
+      })
+    }
+
+    req.user = {
+      ...user,
+      role: user.role ?? 'user',
+      isActive: user.isActive !== false,
+    }
     return next()
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError || error instanceof jwt.JsonWebTokenError) {

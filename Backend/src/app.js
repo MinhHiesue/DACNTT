@@ -2,6 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import mongoose from 'mongoose'
 import authRoutes from './routes/authRoutes.js'
+import adminRoutes from './routes/adminRoutes.js'
 import signalRoutes from './routes/signalRoutes.js'
 import { linkTelegram } from './controllers/userController.js'
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js'
@@ -36,6 +37,7 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/signals', signalRoutes)
 app.use('/api/auth', authRoutes)
+app.use('/api/admin', adminRoutes)
 app.post('/api/link-telegram', linkTelegram)
 app.post('/api/users/link-telegram', linkTelegram)
 app.use(notFoundHandler)
