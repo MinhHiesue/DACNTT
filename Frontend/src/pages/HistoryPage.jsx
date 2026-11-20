@@ -6,12 +6,40 @@ import { HistoryFilters } from '../components/history/HistoryFilters.jsx'
 import { HistoryTable } from '../components/history/HistoryTable.jsx'
 import { useSignals } from '../hooks/useSignals.js'
 
+function formatSymbol(symbol) {
+  if (!symbol) return '—'
+  const match = symbol.match(/^(.+?)(USDT|USDC|BUSD|BTC|ETH)$/)
+  return match ? `${match[1]}/${match[2]}` : symbol
+}
+
+function normalizeSignal(signal, index, seenIds) {
+  const direction = signal.direction?.toUpperCase()
+  const type = signal.type?.toUpperCase() ?? (
+    direction === 'LONG' ? 'BUY' : direction === 'SHORT' ? 'SELL' : 'HOLD'
+  )
+  const baseId = String(signal.id ?? `history-${index}`)
+  const duplicateCount = seenIds.get(baseId) ?? 0
+  seenIds.set(baseId, duplicateCount + 1)
+
+  return {
+    ...signal,
+    id: duplicateCount ? `${baseId}-${duplicateCount}` : baseId,
+    pair: signal.pair ?? formatSymbol(signal.symbol),
+    type,
+    price: signal.price ?? signal.entry_price,
+    createdAt: signal.createdAt ?? (signal.timestamp_unix ? signal.timestamp_unix * 1000 : signal.timestamp),
+    analysis: signal.analysis ?? signal.reject_reason ?? signal.ai_model ?? 'Không có thông tin phân tích.',
+    trend: signal.trend ?? direction ?? 'Không xác định',
+  }
+}
+
 export function HistoryPage({ query }) {
   const { signalsHistory } = useSignals(8000)
 
   const allRecords = useMemo(() => {
     if (signalsHistory && signalsHistory.length > 0) {
-      return signalsHistory
+      const seenIds = new Map()
+      return signalsHistory.map((signal, index) => normalizeSignal(signal, index, seenIds))
     }
     return AI_SIGNAL_DATA
   }, [signalsHistory])
@@ -25,10 +53,11 @@ export function HistoryPage({ query }) {
   const rows = useMemo(() => {
     return allRecords.filter((signal) => {
       const isLong = signal.direction === 'LONG' || signal.type === 'BUY'
+      const isShort = signal.direction === 'SHORT' || signal.type === 'SELL'
       const typeMatch =
         typeFilter === 'ALL' ||
         (typeFilter === 'BUY' && isLong) ||
-        (typeFilter === 'SELL' && !isLong)
+        (typeFilter === 'SELL' && isShort)
 
       const isApproved = signal.status === 'APPROVED' || signal.status === 'ACTIVE'
       const statusMatch =

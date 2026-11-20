@@ -8,6 +8,7 @@ import { ActiveSignalHero } from '../components/signals/ActiveSignalHero.jsx'
 import { PatternInspectorModal } from '../components/signals/PatternInspectorModal.jsx'
 import { useSignals } from '../hooks/useSignals.js'
 import { AI_SIGNAL_DATA } from '../data/market.js'
+import { getSignalDirection } from '../data/signalUtils.js'
 
 export function AISignalsPage({ query = '' }) {
   const {
@@ -48,10 +49,10 @@ export function AISignalsPage({ query = '' }) {
 
   const filteredSignals = useMemo(() => {
     return allSignals.filter((signal) => {
-      const isLong = signal.direction === 'LONG' || signal.type === 'BUY'
+      const direction = getSignalDirection(signal)
       const dirMatch = directionFilter === 'ALL'
-        || (directionFilter === 'BUY' && isLong)
-        || (directionFilter === 'SELL' && !isLong)
+        || (directionFilter === 'BUY' && direction === 'BUY')
+        || (directionFilter === 'SELL' && direction === 'SELL')
 
       const isApproved = signal.status === 'APPROVED' || signal.status === 'ACTIVE'
       const statusMatch = statusFilter === 'ALL'
@@ -87,8 +88,8 @@ export function AISignalsPage({ query = '' }) {
   // Stats calculation
   const stats = useMemo(() => {
     const total = allSignals.length
-    const buyCount = allSignals.filter((s) => s.direction === 'LONG' || s.type === 'BUY').length
-    const sellCount = allSignals.filter((s) => s.direction === 'SHORT' || s.type === 'SELL').length
+    const buyCount = allSignals.filter((signal) => getSignalDirection(signal) === 'BUY').length
+    const sellCount = allSignals.filter((signal) => getSignalDirection(signal) === 'SELL').length
     const approvedCount = allSignals.filter((s) => s.status === 'APPROVED' || s.status === 'ACTIVE').length
     const rejectedCount = allSignals.filter((s) => s.status === 'REJECTED').length
     return { total, buyCount, sellCount, approvedCount, rejectedCount }

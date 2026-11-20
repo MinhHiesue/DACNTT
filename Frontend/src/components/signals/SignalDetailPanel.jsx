@@ -1,5 +1,5 @@
-import { Activity, ShieldCheck, Signal, Brain, Sparkles, TrendingUp, TrendingDown, Target, AlertTriangle } from 'lucide-react'
-import { formatSignalDate, formatSignalPrice, formatConfidence, formatRrRatio } from '../../data/signalUtils.js'
+import { Activity, ShieldCheck, Signal, Brain, Sparkles, TrendingUp, TrendingDown, Minus, Target, AlertTriangle } from 'lucide-react'
+import { formatSignalDate, formatSignalPrice, formatConfidence, formatRrRatio, getSignalDirection } from '../../data/signalUtils.js'
 
 export function SignalDetailPanel({ signal, onOpenInspector }) {
   if (!signal) {
@@ -14,16 +14,19 @@ export function SignalDetailPanel({ signal, onOpenInspector }) {
     )
   }
 
-  const isLong = signal.direction === 'LONG' || signal.type === 'BUY'
+  const direction = getSignalDirection(signal)
+  const isLong = direction === 'BUY'
+  const isShort = direction === 'SELL'
+  const hasTradeDirection = direction !== 'NONE'
   const isApproved = signal.status === 'APPROVED' || signal.status === 'ACTIVE'
   const entryPrice = signal.entry_price || signal.price || 0
   const stopLoss = signal.stop_loss || signal.stop || 0
   const takeProfit = signal.take_profit || signal.target || 0
   const deltaSl = signal.delta_sl || Math.abs(entryPrice - stopLoss) || 0
   const deltaTp = signal.delta_tp || Math.abs(takeProfit - entryPrice) || 0
-  const rrRatio = signal.rr_ratio || (deltaSl > 0 ? (deltaTp / deltaSl) : 1.5)
+  const rrRatio = signal.rr_ratio || (deltaSl > 0 ? (deltaTp / deltaSl) : 0)
   const confidence = signal.confidence <= 1 ? signal.confidence * 100 : signal.confidence
-  const matchedCount = signal.matched_count || 14
+  const matchedCount = signal.matched_count ?? 0
 
   return (
     <aside className="panel signal-detail-panel" aria-live="polite">
@@ -33,9 +36,9 @@ export function SignalDetailPanel({ signal, onOpenInspector }) {
           <div className="panel-kicker">AI SIGNAL BREAKDOWN</div>
           <h2>Chi tiết tín hiệu</h2>
         </div>
-        <span className={`signal-type-badge ${isLong ? 'type-buy' : 'type-sell'}`}>
-          {isLong ? <TrendingUp size={12} className="inline mr-1" /> : <TrendingDown size={12} className="inline mr-1" />}
-          {isLong ? 'BUY / LONG' : 'SELL / SHORT'}
+        <span className={`signal-type-badge ${isLong ? 'type-buy' : isShort ? 'type-sell' : 'type-hold'}`}>
+          {isLong ? <TrendingUp size={12} className="inline mr-1" /> : isShort ? <TrendingDown size={12} className="inline mr-1" /> : <Minus size={12} className="inline mr-1" />}
+          {isLong ? 'BUY / LONG' : isShort ? 'SELL / SHORT' : 'KHÔNG VÀO LỆNH'}
         </span>
       </div>
 
@@ -67,13 +70,13 @@ export function SignalDetailPanel({ signal, onOpenInspector }) {
       <div className="grid grid-cols-2 gap-2 my-3">
         <div className="p-2.5 bg-[#161B22] border border-[#F23645]/30 rounded-xl">
           <span className="text-[10px] text-[#F23645] block font-bold">STOP LOSS (CẮT LỖ)</span>
-          <strong className="text-sm font-mono text-white block my-0.5">${formatSignalPrice(stopLoss)}</strong>
-          <small className="text-[#8B949E] text-[10px]">Δ -${deltaSl.toFixed(1)} USD</small>
+          <strong className="text-sm font-mono text-white block my-0.5">{hasTradeDirection ? `$${formatSignalPrice(stopLoss)}` : '—'}</strong>
+          <small className="text-[#8B949E] text-[10px]">{hasTradeDirection ? `Δ -$${deltaSl.toFixed(1)} USD` : 'Chưa thiết lập'}</small>
         </div>
         <div className="p-2.5 bg-[#161B22] border border-[#089981]/30 rounded-xl">
           <span className="text-[10px] text-[#089981] block font-bold">TAKE PROFIT (CHỐT LỜI)</span>
-          <strong className="text-sm font-mono text-white block my-0.5">${formatSignalPrice(takeProfit)}</strong>
-          <small className="text-[#8B949E] text-[10px]">Δ +${deltaTp.toFixed(1)} USD (R:R {formatRrRatio(rrRatio)})</small>
+          <strong className="text-sm font-mono text-white block my-0.5">{hasTradeDirection ? `$${formatSignalPrice(takeProfit)}` : '—'}</strong>
+          <small className="text-[#8B949E] text-[10px]">{hasTradeDirection ? `Δ +$${deltaTp.toFixed(1)} USD (R:R ${formatRrRatio(rrRatio)})` : 'Chưa thiết lập'}</small>
         </div>
       </div>
 
@@ -89,7 +92,7 @@ export function SignalDetailPanel({ signal, onOpenInspector }) {
           <span style={{ width: `${Math.min(confidence, 100)}%` }} />
         </div>
         <div className="flex justify-between items-center text-[11px] text-[#8B949E] mt-1.5">
-          <span>Khớp: <b className="text-white">{matchedCount} mẫu hình</b> lịch sử</span>
+          <span>{matchedCount > 0 ? <>Khớp: <b className="text-white">{matchedCount} mẫu hình</b> lịch sử</> : 'Chưa có mẫu khớp'}</span>
           <span>Chuẩn: <b className="text-white">Cosine $\ge$ 85%</b></span>
         </div>
       </div>
@@ -101,8 +104,8 @@ export function SignalDetailPanel({ signal, onOpenInspector }) {
         </div>
         <p className="text-[#C9D1D9] text-[11px] leading-relaxed">
           • <b>Rủi ro đề xuất:</b> 1.0% Vốn tài khoản ($100 USD trên $10,000 USD).<br />
-          • <b>Khối lượng lệnh:</b> ~{(100 / (deltaSl + 1e-6)).toFixed(2)} Oz Vàng (Position Size).<br />
-          • <b>Căn cứ Stop Loss:</b> Swing {isLong ? 'Low' : 'High'} 15 nến + Vùng đệm $2.0 USD.
+          • <b>Khối lượng lệnh:</b> {hasTradeDirection ? `~${(100 / (deltaSl + 1e-6)).toFixed(2)} Oz Vàng (Position Size).` : 'Không vào lệnh khi tín hiệu bị từ chối.'}<br />
+          {hasTradeDirection && <>• <b>Căn cứ Stop Loss:</b> Swing {isLong ? 'Low' : 'High'} 15 nến + Vùng đệm $2.0 USD.</>}
         </p>
       </div>
 

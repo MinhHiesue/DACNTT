@@ -1,5 +1,5 @@
-import { Sparkles, Brain, RefreshCw, ShieldCheck, TrendingUp, TrendingDown, Eye, CheckCircle2, AlertTriangle } from 'lucide-react'
-import { formatSignalPrice, formatConfidence, formatRrRatio, formatSignalDate } from '../../data/signalUtils.js'
+import { Sparkles, Brain, RefreshCw, ShieldCheck, TrendingUp, TrendingDown, Minus, Eye, CheckCircle2, AlertTriangle } from 'lucide-react'
+import { formatSignalPrice, formatConfidence, formatRrRatio, formatSignalDate, getSignalDirection } from '../../data/signalUtils.js'
 
 export function ActiveSignalHero({ signal, onOpenInspector, onTriggerScan, isScanning }) {
   if (!signal) {
@@ -24,16 +24,19 @@ export function ActiveSignalHero({ signal, onOpenInspector, onTriggerScan, isSca
     )
   }
 
-  const isLong = signal.direction === 'LONG' || signal.type === 'BUY'
+  const direction = getSignalDirection(signal)
+  const isLong = direction === 'BUY'
+  const isShort = direction === 'SELL'
+  const hasTradeDirection = direction !== 'NONE'
   const isApproved = signal.status === 'APPROVED' || signal.status === 'ACTIVE'
   const entryPrice = signal.entry_price || signal.price || 0
   const stopLoss = signal.stop_loss || signal.stop || 0
   const takeProfit = signal.take_profit || signal.target || 0
   const deltaSl = signal.delta_sl || Math.abs(entryPrice - stopLoss) || 0
   const deltaTp = signal.delta_tp || Math.abs(takeProfit - entryPrice) || 0
-  const rrRatio = signal.rr_ratio || (deltaSl > 0 ? deltaTp / deltaSl : 1.5)
+  const rrRatio = signal.rr_ratio || (deltaSl > 0 ? deltaTp / deltaSl : 0)
   const confidence = signal.confidence <= 1 ? signal.confidence * 100 : signal.confidence
-  const matchedCount = signal.matched_count || 14
+  const matchedCount = signal.matched_count ?? 0
   const timeFormatted = formatSignalDate(signal.timestamp_unix ? signal.timestamp_unix * 1000 : signal.createdAt)
 
   return (
@@ -41,7 +44,7 @@ export function ActiveSignalHero({ signal, onOpenInspector, onTriggerScan, isSca
       {/* Background Glow */}
       <div
         className={`absolute -top-24 -right-24 w-72 h-72 rounded-full blur-3xl opacity-20 pointer-events-none ${
-          isLong ? 'bg-[#089981]' : 'bg-[#F23645]'
+          isLong ? 'bg-[#089981]' : isShort ? 'bg-[#F23645]' : 'bg-[#58A6FF]'
         }`}
       />
 
@@ -50,8 +53,8 @@ export function ActiveSignalHero({ signal, onOpenInspector, onTriggerScan, isSca
         <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-[#21262D]">
           <div className="flex items-center gap-3">
             <span className="flex h-3 w-3 relative">
-              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isLong ? 'bg-[#089981]' : 'bg-[#F23645]'}`} />
-              <span className={`relative inline-flex rounded-full h-3 w-3 ${isLong ? 'bg-[#089981]' : 'bg-[#F23645]'}`} />
+              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isLong ? 'bg-[#089981]' : isShort ? 'bg-[#F23645]' : 'bg-[#58A6FF]'}`} />
+              <span className={`relative inline-flex rounded-full h-3 w-3 ${isLong ? 'bg-[#089981]' : isShort ? 'bg-[#F23645]' : 'bg-[#58A6FF]'}`} />
             </span>
             <div>
               <div className="flex items-center gap-2">
@@ -104,11 +107,13 @@ export function ActiveSignalHero({ signal, onOpenInspector, onTriggerScan, isSca
                   className={`p-3 rounded-xl border text-xl font-bold flex items-center gap-2 ${
                     isLong
                       ? 'bg-[#089981]/15 border-[#089981]/40 text-[#089981]'
-                      : 'bg-[#F23645]/15 border-[#F23645]/40 text-[#F23645]'
+                      : isShort
+                        ? 'bg-[#F23645]/15 border-[#F23645]/40 text-[#F23645]'
+                        : 'bg-blue-500/10 border-blue-500/30 text-blue-300'
                   }`}
                 >
-                  {isLong ? <TrendingUp size={24} /> : <TrendingDown size={24} />}
-                  <span>{isLong ? 'BUY / LONG' : 'SELL / SHORT'}</span>
+                  {isLong ? <TrendingUp size={24} /> : isShort ? <TrendingDown size={24} /> : <Minus size={24} />}
+                  <span>{isLong ? 'BUY / LONG' : isShort ? 'SELL / SHORT' : 'KHÔNG VÀO LỆNH'}</span>
                 </div>
 
                 <div className="text-xs">
@@ -161,11 +166,11 @@ export function ActiveSignalHero({ signal, onOpenInspector, onTriggerScan, isSca
                   STOP LOSS
                 </span>
                 <strong className="text-base font-mono font-bold text-white block">
-                  ${formatSignalPrice(stopLoss)}
+                  {hasTradeDirection ? `$${formatSignalPrice(stopLoss)}` : '—'}
                 </strong>
               </div>
               <small className="text-[10px] text-[#F23645] mt-2 block font-mono">
-                -Δ${deltaSl.toFixed(1)} USD
+                {hasTradeDirection ? `-Δ$${deltaSl.toFixed(1)} USD` : 'Chưa thiết lập'}
               </small>
             </div>
 
@@ -176,11 +181,11 @@ export function ActiveSignalHero({ signal, onOpenInspector, onTriggerScan, isSca
                   TAKE PROFIT
                 </span>
                 <strong className="text-base font-mono font-bold text-white block">
-                  ${formatSignalPrice(takeProfit)}
+                  {hasTradeDirection ? `$${formatSignalPrice(takeProfit)}` : '—'}
                 </strong>
               </div>
               <small className="text-[10px] text-[#089981] mt-2 block font-mono">
-                +Δ${deltaTp.toFixed(1)} USD
+                {hasTradeDirection ? `+Δ$${deltaTp.toFixed(1)} USD` : 'Chưa thiết lập'}
               </small>
             </div>
 
@@ -188,7 +193,7 @@ export function ActiveSignalHero({ signal, onOpenInspector, onTriggerScan, isSca
             <div className="col-span-3 mt-1 pt-2.5 border-t border-[#21262D] flex items-center justify-between text-xs">
               <span className="text-[#8B949E]">Tỷ lệ Reward / Risk:</span>
               <span className="font-mono font-bold text-white bg-blue-500/20 px-2 py-0.5 rounded text-xs border border-blue-500/30">
-                R:R {formatRrRatio(rrRatio)} (Đạt chuẩn $\ge$ 1.5)
+                {hasTradeDirection ? `R:R ${formatRrRatio(rrRatio)} (Đạt chuẩn $\\ge$ 1.5)` : 'R:R —'}
               </span>
             </div>
           </div>
@@ -200,7 +205,7 @@ export function ActiveSignalHero({ signal, onOpenInspector, onTriggerScan, isSca
                 <Brain size={14} /> FAISS MEMORY MATCH
               </div>
               <p className="text-[11px] text-[#C9D1D9] leading-relaxed">
-                Đã so khớp <b>{matchedCount} mẫu hình</b> tương đồng $\ge 85\%$ trong Memory Bank (1,977 mẫu lịch sử).
+                {matchedCount > 0 ? <>Đã so khớp <b>{matchedCount} mẫu hình</b> tương đồng $\ge 85\%$ trong Memory Bank (1,977 mẫu lịch sử).</> : 'Không có mẫu đủ điều kiện khớp.'}
               </p>
 
               <div className="mt-3">
@@ -219,7 +224,7 @@ export function ActiveSignalHero({ signal, onOpenInspector, onTriggerScan, isSca
 
             <div className="mt-3 pt-2.5 border-t border-[#21262D] text-[11px] text-[#8B949E] flex items-center gap-1">
               <ShieldCheck size={12} className="text-emerald-400 shrink-0" />
-              <span>Phân bổ 1.0% vốn: ~{(100 / (deltaSl + 1e-6)).toFixed(3)} BTC</span>
+              <span>{hasTradeDirection ? `Phân bổ 1.0% vốn: ~${(100 / (deltaSl + 1e-6)).toFixed(3)} BTC` : 'Không phân bổ vốn cho tín hiệu bị từ chối.'}</span>
             </div>
           </div>
         </div>

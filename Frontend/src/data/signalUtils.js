@@ -34,6 +34,15 @@ export function formatRrRatio(rr) {
   return `${Number(rr).toFixed(2)}`
 }
 
+export function getSignalDirection(signal) {
+  const direction = signal?.direction?.toUpperCase()
+  const type = signal?.type?.toUpperCase()
+
+  if (direction === 'LONG' || type === 'BUY') return 'BUY'
+  if (direction === 'SHORT' || type === 'SELL') return 'SELL'
+  return 'NONE'
+}
+
 export const SIGNAL_STATUS_LABELS = {
   APPROVED: '✅ Được phê duyệt',
   REJECTED: '⚠️ Bị từ chối',

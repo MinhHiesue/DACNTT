@@ -1,5 +1,5 @@
-import { Search, TrendingUp, TrendingDown, Eye } from 'lucide-react'
-import { SIGNAL_STATUS_LABELS, formatSignalDate, formatSignalPrice, formatConfidence, formatRrRatio } from '../../data/signalUtils.js'
+import { Search, TrendingUp, TrendingDown, Minus, Eye } from 'lucide-react'
+import { SIGNAL_STATUS_LABELS, formatSignalDate, formatSignalPrice, formatConfidence, formatRrRatio, getSignalDirection } from '../../data/signalUtils.js'
 
 export function SignalTable({ signals, selectedId, onSelect, onOpenInspector }) {
   return (
@@ -21,7 +21,10 @@ export function SignalTable({ signals, selectedId, onSelect, onOpenInspector }) 
         </thead>
         <tbody>
           {signals.map((signal) => {
-            const isLong = signal.direction === 'LONG' || signal.type === 'BUY'
+            const direction = getSignalDirection(signal)
+            const isLong = direction === 'BUY'
+            const isShort = direction === 'SELL'
+            const hasTradeDirection = direction !== 'NONE'
             const isApproved = signal.status === 'APPROVED' || signal.status === 'ACTIVE'
             const deltaSl = signal.delta_sl || Math.abs(signal.entry_price - signal.stop_loss || signal.price - signal.stop) || 0
             const deltaTp = signal.delta_tp || Math.abs(signal.take_profit - signal.entry_price || signal.target - signal.price) || 0
@@ -45,24 +48,24 @@ export function SignalTable({ signals, selectedId, onSelect, onOpenInspector }) 
                   <small>Binance M5</small>
                 </td>
                 <td>
-                  <span className={`signal-type-badge ${isLong ? 'type-buy' : 'type-sell'}`}>
-                    {isLong ? <TrendingUp size={12} className="inline mr-1" /> : <TrendingDown size={12} className="inline mr-1" />}
-                    {isLong ? 'BUY / LONG' : 'SELL / SHORT'}
+                  <span className={`signal-type-badge ${isLong ? 'type-buy' : isShort ? 'type-sell' : 'type-hold'}`}>
+                    {isLong ? <TrendingUp size={12} className="inline mr-1" /> : isShort ? <TrendingDown size={12} className="inline mr-1" /> : <Minus size={12} className="inline mr-1" />}
+                    {isLong ? 'BUY / LONG' : isShort ? 'SELL / SHORT' : 'KHÔNG VÀO LỆNH'}
                   </span>
                 </td>
                 <td className="table-price font-mono font-semibold">
                   ${formatSignalPrice(signal.entry_price || signal.price)}
                 </td>
                 <td className="table-price text-[#F23645] font-mono text-xs">
-                  ${formatSignalPrice(signal.stop_loss || signal.stop)}
-                  <small className="block text-[#8B949E] text-[10px]">(-${deltaSl.toFixed(1)})</small>
+                  {hasTradeDirection ? `$${formatSignalPrice(signal.stop_loss || signal.stop)}` : '—'}
+                  {hasTradeDirection && <small className="block text-[#8B949E] text-[10px]">(-${deltaSl.toFixed(1)})</small>}
                 </td>
                 <td className="table-price text-[#089981] font-mono text-xs">
-                  ${formatSignalPrice(signal.take_profit || signal.target)}
-                  <small className="block text-[#8B949E] text-[10px]">(+${deltaTp.toFixed(1)})</small>
+                  {hasTradeDirection ? `$${formatSignalPrice(signal.take_profit || signal.target)}` : '—'}
+                  {hasTradeDirection && <small className="block text-[#8B949E] text-[10px]">(+${deltaTp.toFixed(1)})</small>}
                 </td>
                 <td className="font-semibold text-xs text-white">
-                  {formatRrRatio(signal.rr_ratio || 1.5)}
+                  {hasTradeDirection ? formatRrRatio(signal.rr_ratio) : '—'}
                 </td>
                 <td>
                   <div className="confidence-cell">
